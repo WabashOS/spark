@@ -90,7 +90,9 @@ private[spark] class NettyBlockTransferService(
       execId: String,
       blockIds: Array[String],
       listener: BlockFetchingListener): Unit = {
+    val printThis = blockIds.mkString(" ")
     logTrace(s"Fetch blocks from $host:$port (executor id $execId)")
+    logTrace(s"Blocks: $printThis")
     try {
       val blockFetchStarter = new RetryingBlockFetcher.BlockFetchStarter {
         override def createAndStart(blockIds: Array[String], listener: BlockFetchingListener) {
