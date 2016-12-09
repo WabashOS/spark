@@ -68,6 +68,7 @@ import org.apache.spark.shuffle._
  */
 private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager with Logging {
 
+  logTrace(s"Created a SortShuffleManager")
   if (!conf.getBoolean("spark.shuffle.spill", true)) {
     logWarning(
       "spark.shuffle.spill was set to false, but this configuration is ignored as of Spark 1.6+." +
@@ -94,14 +95,17 @@ private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager 
       // them at the end. This avoids doing serialization and deserialization twice to merge
       // together the spilled files, which would happen with the normal code path. The downside is
       // having multiple files open at a time and thus more memory allocated to buffers.
+      logTrace(s"Using BypassMergeSortShuffleHandle")
       new BypassMergeSortShuffleHandle[K, V](
         shuffleId, numMaps, dependency.asInstanceOf[ShuffleDependency[K, V, V]])
     } else if (SortShuffleManager.canUseSerializedShuffle(dependency)) {
       // Otherwise, try to buffer map outputs in a serialized form, since this is more efficient:
+      logTrace(s"Using SerializedShuffleHandle")
       new SerializedShuffleHandle[K, V](
         shuffleId, numMaps, dependency.asInstanceOf[ShuffleDependency[K, V, V]])
     } else {
       // Otherwise, buffer map outputs in a deserialized form:
+      logTrace(s"Using BaseShuffleHandle")
       new BaseShuffleHandle(shuffleId, numMaps, dependency)
     }
   }
@@ -127,6 +131,7 @@ private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager 
     numMapsForShuffle.putIfAbsent(
       handle.shuffleId, handle.asInstanceOf[BaseShuffleHandle[_, _, _]].numMaps)
     val env = SparkEnv.get
+    logTrace(s"$handle")
     handle match {
       case unsafeShuffleHandle: SerializedShuffleHandle[K @unchecked, V @unchecked] =>
         new UnsafeShuffleWriter(
