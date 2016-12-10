@@ -18,6 +18,7 @@
 package org.apache.spark.shuffle
 
 import java.io._
+import java.nio.file.Files
 
 import com.google.common.io.ByteStreams
 
@@ -163,6 +164,9 @@ private[spark] class IndexShuffleBlockResolver(
       logTrace(s"writeIndexFileAndCommit temp data file is: ${dataTmp}")
       logTrace(s"writeIndexFileAndCommit temp index file is: ${indexTmp}")
 
+      val backupDataFile = new File("/scratch/sagark/spark-sample-out/data")
+      val backupIndexFile = new File("/scratch/sagark/spark-sample-out/index")
+
       // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
       // the following check and rename are atomic.
       synchronized {
@@ -188,6 +192,10 @@ private[spark] class IndexShuffleBlockResolver(
           if (dataFile.exists()) {
             dataFile.delete()
           }
+
+//          Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
+//          Files.copy(dataTmp.toPath(), backupDataFile.toPath())
+
           if (!indexTmp.renameTo(indexFile)) {
             throw new IOException("fail to rename file " + indexTmp + " to " + indexFile)
           }
@@ -219,11 +227,16 @@ private[spark] class IndexShuffleBlockResolver(
       ByteStreams.skipFully(in, blockId.reduceId * 8)
       val offset = in.readLong()
       val nextOffset = in.readLong()
-      new FileSegmentManagedBuffer(
+      val DONE = new FileSegmentManagedBuffer(
         transportConf,
         getDataFile(blockId.shuffleId, blockId.mapId),
         offset,
         nextOffset - offset)
+      val forPrinting = DONE.nioByteBuffer()
+//      logTrace(s"getBlockData for ${blockId} says element 1 is: ${forPrinting.getChar(1)}")
+      logTrace(s"getBlockData for ${blockId} hashCode is: ${forPrinting.hashCode()}")
+
+      DONE
     } finally {
       in.close()
     }
