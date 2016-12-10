@@ -298,7 +298,12 @@ private[spark] class BlockManager(
    * cannot be read successfully.
    */
   override def getBlockData(blockId: BlockId): ManagedBuffer = {
+    // TODO: does this mean we always get shuffle data from file, or is it just
+    // that non-shuffle data always goes through localBytes and shuffle data 
+    // could also be in memory (but just has a different access path)?
     if (blockId.isShuffle) {
+      logTrace(s"Blockmanager.getBlockData called on shuffle blocks")
+      logTrace(s"Using shuffleManager: $shuffleManager")
       shuffleManager.shuffleBlockResolver.getBlockData(blockId.asInstanceOf[ShuffleBlockId])
     } else {
       getLocalBytes(blockId) match {

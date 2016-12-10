@@ -52,7 +52,10 @@ private[spark] class IndexShuffleBlockResolver(
   private val transportConf = SparkTransportConf.fromSparkConf(conf, "shuffle")
 
   def getDataFile(shuffleId: Int, mapId: Int): File = {
-    blockManager.diskBlockManager.getFile(ShuffleDataBlockId(shuffleId, mapId, NOOP_REDUCE_ID))
+    val shufblockid = ShuffleDataBlockId(shuffleId, mapId, NOOP_REDUCE_ID)
+    logTrace(s"getDataFile called with ${blockManager.diskBlockManager}")
+    logTrace(s"asking for ${shufblockid.name}")
+    blockManager.diskBlockManager.getFile(shufblockid)
   }
 
   private def getIndexFile(shuffleId: Int, mapId: Int): File = {
@@ -155,11 +158,17 @@ private[spark] class IndexShuffleBlockResolver(
       }
 
       val dataFile = getDataFile(shuffleId, mapId)
+      logTrace(s"writeIndexFileAndCommit using real data file: ${dataFile}")
+      logTrace(s"writeIndexFileAndCommit using real index file: ${indexFile}")
+      logTrace(s"writeIndexFileAndCommit temp data file is: ${dataTmp}")
+      logTrace(s"writeIndexFileAndCommit temp index file is: ${indexTmp}")
+
       // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
       // the following check and rename are atomic.
       synchronized {
         val existingLengths = checkIndexAndDataFile(indexFile, dataFile, lengths.length)
         if (existingLengths != null) {
+          logTrace(s"writeIndexFileAndCommit someone else already wrote the data")
           // Another attempt for the same task has already written our map outputs successfully,
           // so just use the existing partition lengths and delete our temporary map outputs.
           System.arraycopy(existingLengths, 0, lengths, 0, lengths.length)
@@ -168,6 +177,9 @@ private[spark] class IndexShuffleBlockResolver(
           }
           indexTmp.delete()
         } else {
+          // S: it appears that each mapper writes one of these even if there 
+          // isn't really anything in there
+          logTrace(s"writeIndexFileAndCommit first successful map output write for ${dataFile}")
           // This is the first successful attempt in writing the map outputs for this task,
           // so override any existing index and data files with the ones we wrote.
           if (indexFile.exists()) {
@@ -192,9 +204,15 @@ private[spark] class IndexShuffleBlockResolver(
   }
 
   override def getBlockData(blockId: ShuffleBlockId): ManagedBuffer = {
+    logTrace(s"called getBlockData on IndexShuffleBlockResolver for ${blockId.name}")
+
+    // TODO: do we plugin RDMA read of data here?
+
     // The block is actually going to be a range of a single map output file for this map, so
     // find out the consolidated file, then the offset within that from our index
     val indexFile = getIndexFile(blockId.shuffleId, blockId.mapId)
+    logTrace(s"Filename: $indexFile")
+
 
     val in = new DataInputStream(new FileInputStream(indexFile))
     try {

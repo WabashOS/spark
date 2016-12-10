@@ -123,6 +123,12 @@ final class BypassMergeSortShuffleWriter<K, V> extends ShuffleWriter<K, V> {
   @Override
   public void write(Iterator<Product2<K, V>> records) throws IOException {
     logger.trace("BypassMergeSortShuffleWriter write called\n");
+    String trace = "";
+    for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+        trace += ste.toString() + "\n";
+    }
+    logger.trace(trace);
+
     assert (partitionWriters == null);
     if (!records.hasNext()) {
       partitionLengths = new long[numPartitions];
@@ -134,11 +140,14 @@ final class BypassMergeSortShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     final long openStartTime = System.nanoTime();
     partitionWriters = new DiskBlockObjectWriter[numPartitions];
     partitionWriterSegments = new FileSegment[numPartitions];
+    logger.trace("numPartitions: " + new Integer(numPartitions).toString());
     for (int i = 0; i < numPartitions; i++) {
       final Tuple2<TempShuffleBlockId, File> tempShuffleBlockIdPlusFile =
         blockManager.diskBlockManager().createTempShuffleBlock();
       final File file = tempShuffleBlockIdPlusFile._2();
       final BlockId blockId = tempShuffleBlockIdPlusFile._1();
+      logger.trace("blockId toString: " + blockId.toString());
+      logger.trace("blockId name: " + blockId.name());
       partitionWriters[i] =
         blockManager.getDiskWriter(blockId, file, serInstance, fileBufferSize, writeMetrics);
     }
@@ -160,7 +169,11 @@ final class BypassMergeSortShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     }
 
     File output = shuffleBlockResolver.getDataFile(shuffleId, mapId);
+    logger.trace("file toString: " + output.toString());
+
+    // S: this just opens a temp file in the same directory as shuffle output
     File tmp = Utils.tempFileWith(output);
+    logger.trace("tmp file name: " + tmp.toString());
     try {
       partitionLengths = writePartitionedFile(tmp);
       shuffleBlockResolver.writeIndexFileAndCommit(shuffleId, mapId, partitionLengths, tmp);

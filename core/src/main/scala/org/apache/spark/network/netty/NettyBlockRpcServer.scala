@@ -45,6 +45,9 @@ class NettyBlockRpcServer(
     blockManager: BlockDataManager)
   extends RpcHandler with Logging {
 
+  // TODO, where is this called and which blockManager is supplied?
+  // TODO, then, how does the blockManager find the right shuffle data?
+
   private val streamManager = new OneForOneStreamManager()
 
   override def receive(
@@ -56,6 +59,7 @@ class NettyBlockRpcServer(
 
     message match {
       case openBlocks: OpenBlocks =>
+        logTrace(s"$blockManager")
         val blocks: Seq[ManagedBuffer] =
           openBlocks.blockIds.map(BlockId.apply).map(blockManager.getBlockData)
         val streamId = streamManager.registerStream(appId, blocks.iterator.asJava)
