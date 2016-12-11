@@ -17,7 +17,10 @@
 
 package org.apache.spark.network.netty
 
+import java.io._
 import java.nio.ByteBuffer
+
+import com.google.common.io.ByteStreams
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{Future, Promise}
@@ -25,7 +28,7 @@ import scala.reflect.ClassTag
 
 import org.apache.spark.{SecurityManager, SparkConf}
 import org.apache.spark.network._
-import org.apache.spark.network.buffer.ManagedBuffer
+import org.apache.spark.network.buffer.{FileSegmentManagedBuffer, ManagedBuffer}
 import org.apache.spark.network.client.{RpcResponseCallback, TransportClientBootstrap, TransportClientFactory}
 import org.apache.spark.network.sasl.{SaslClientBootstrap, SaslServerBootstrap}
 import org.apache.spark.network.server._
@@ -102,11 +105,46 @@ private[spark] class NettyBlockTransferService(
     //
     // The rest of the function will run as expected for the other blocks
     val shuffleBlocks = blockIds.filter(x => x contains "shuffle_")
-    val other_blockIds2 = blockIds.filter(x => !(x contains "shuffle_"))
-    val other_blockIds = blockIds.filter(x => true)
+    val other_blockIds = blockIds.filter(x => !(x contains "shuffle_"))
+//    val other_blockIds = blockIds.filter(x => true)
     logTrace(s"Shuffle Blocks: ${shuffleBlocks.mkString(" ")}")
-    logTrace(s"Other Blocks: ${other_blockIds2.mkString(" ")}")
+    logTrace(s"Other Blocks: ${other_blockIds.mkString(" ")}")
 
+    /* code taken from IndexShuffleBlockResolver getBlockData */
+
+    for (aShuffleBlock <- shuffleBlocks) {
+      val shuffleId = aShuffleBlock.split("_")(1)
+      val blockId = aShuffleBlock.split("_")(2)
+      val reduceId = aShuffleBlock.split("_")(3).toInt
+
+
+      val indexFile = new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.index")
+      logTrace(s"Filename for index: $indexFile")
+
+      val in = new DataInputStream(new FileInputStream(indexFile))
+      try {
+        ByteStreams.skipFully(in, reduceId * 8)
+        val offset = in.readLong()
+        val nextOffset = in.readLong()
+        val DONE = new FileSegmentManagedBuffer(
+          transportConf,
+          new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.data"),
+//          getDataFile(blockId.shuffleId, blockId.mapId),
+          offset,
+          nextOffset - offset)
+        val forPrinting = DONE.nioByteBuffer()
+        logTrace(s"getBlockData for ${blockId} hashCode is: ${forPrinting.hashCode()}")
+        listener.onBlockFetchSuccess(aShuffleBlock, DONE)
+      } finally {
+        in.close()
+      }
+    }
+
+    /* end code taken from getBlockData */
+
+
+    // TODO do we need to do anything special here if there are no non-shuffle
+    // blocks?
     try {
       val blockFetchStarter = new RetryingBlockFetcher.BlockFetchStarter {
         override def createAndStart(other_blockIds: Array[String], listener: BlockFetchingListener) {
