@@ -92,12 +92,26 @@ private[spark] class NettyBlockTransferService(
       listener: BlockFetchingListener): Unit = {
     val printThis = blockIds.mkString(" ")
     logTrace(s"Fetch blocks from $host:$port (executor id $execId)")
-    logTrace(s"Blocks: $printThis")
+    logTrace(s"All Blocks: $printThis")
+
+    // TODO: can we just take out any block that starts with "shuffle_" for now?
+    // and put it in our own list
+    //
+    // then manually obtain those blocks from /nscratch/ for now and call 
+    // the listener on them one by one
+    //
+    // The rest of the function will run as expected for the other blocks
+    val shuffleBlocks = blockIds.filter(x => x contains "shuffle_")
+    val other_blockIds2 = blockIds.filter(x => !(x contains "shuffle_"))
+    val other_blockIds = blockIds.filter(x => true)
+    logTrace(s"Shuffle Blocks: ${shuffleBlocks.mkString(" ")}")
+    logTrace(s"Other Blocks: ${other_blockIds2.mkString(" ")}")
+
     try {
       val blockFetchStarter = new RetryingBlockFetcher.BlockFetchStarter {
-        override def createAndStart(blockIds: Array[String], listener: BlockFetchingListener) {
+        override def createAndStart(other_blockIds: Array[String], listener: BlockFetchingListener) {
           val client = clientFactory.createClient(host, port)
-          new OneForOneBlockFetcher(client, appId, execId, blockIds.toArray, listener).start()
+          new OneForOneBlockFetcher(client, appId, execId, other_blockIds.toArray, listener).start()
         }
       }
 
@@ -105,14 +119,14 @@ private[spark] class NettyBlockTransferService(
       if (maxRetries > 0) {
         // Note this Fetcher will correctly handle maxRetries == 0; we avoid it just in case there's
         // a bug in this code. We should remove the if statement once we're sure of the stability.
-        new RetryingBlockFetcher(transportConf, blockFetchStarter, blockIds, listener).start()
+        new RetryingBlockFetcher(transportConf, blockFetchStarter, other_blockIds, listener).start()
       } else {
-        blockFetchStarter.createAndStart(blockIds, listener)
+        blockFetchStarter.createAndStart(other_blockIds, listener)
       }
     } catch {
       case e: Exception =>
         logError("Exception while beginning fetchBlocks", e)
-        blockIds.foreach(listener.onBlockFetchFailure(_, e))
+        other_blockIds.foreach(listener.onBlockFetchFailure(_, e))
     }
   }
 
