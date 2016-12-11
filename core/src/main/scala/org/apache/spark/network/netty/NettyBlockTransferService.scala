@@ -93,9 +93,11 @@ private[spark] class NettyBlockTransferService(
       execId: String,
       blockIds: Array[String],
       listener: BlockFetchingListener): Unit = {
-    val printThis = blockIds.mkString(" ")
     logTrace(s"Fetch blocks from $host:$port (executor id $execId)")
-    logTrace(s"All Blocks: $printThis")
+    logTrace(s"All Blocks: ${blockIds.mkString(" ")}")
+
+    // hacky - also need to change IndexShuffleBlockResolver's RDMA_SHUFFLE
+    val RDMA_SHUFFLE = true
 
     // TODO: can we just take out any block that starts with "shuffle_" for now?
     // and put it in our own list
@@ -104,44 +106,53 @@ private[spark] class NettyBlockTransferService(
     // the listener on them one by one
     //
     // The rest of the function will run as expected for the other blocks
-    val shuffleBlocks = blockIds.filter(x => x contains "shuffle_")
-    val other_blockIds = blockIds.filter(x => !(x contains "shuffle_"))
-//    val other_blockIds = blockIds.filter(x => true)
-    logTrace(s"Shuffle Blocks: ${shuffleBlocks.mkString(" ")}")
-    logTrace(s"Other Blocks: ${other_blockIds.mkString(" ")}")
 
-    /* code taken from IndexShuffleBlockResolver getBlockData */
+    val other_blockIds = 
+      if (RDMA_SHUFFLE)
+        blockIds.filter(x => !(x contains "shuffle_"))
+      else
+        blockIds
 
-    for (aShuffleBlock <- shuffleBlocks) {
-      val shuffleId = aShuffleBlock.split("_")(1)
-      val blockId = aShuffleBlock.split("_")(2)
-      val reduceId = aShuffleBlock.split("_")(3).toInt
-
-
-      val indexFile = new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.index")
-      logTrace(s"Filename for index: $indexFile")
-
-      val in = new DataInputStream(new FileInputStream(indexFile))
-      try {
-        ByteStreams.skipFully(in, reduceId * 8)
-        val offset = in.readLong()
-        val nextOffset = in.readLong()
-        val DONE = new FileSegmentManagedBuffer(
-          transportConf,
-          new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.data"),
-//          getDataFile(blockId.shuffleId, blockId.mapId),
-          offset,
-          nextOffset - offset)
-        val forPrinting = DONE.nioByteBuffer()
-        logTrace(s"getBlockData for ${blockId} hashCode is: ${forPrinting.hashCode()}")
-        listener.onBlockFetchSuccess(aShuffleBlock, DONE)
-      } finally {
-        in.close()
-      }
+    if (RDMA_SHUFFLE) {
+      logTrace(s"Other Blocks: ${other_blockIds.mkString(" ")}")
+    } else {
+      logTrace(s"Blocks: ${other_blockIds.mkString(" ")}")
     }
+  
+    if (RDMA_SHUFFLE) {
+      val shuffleBlocks = blockIds.filter(x => x contains "shuffle_")
+      logTrace(s"Shuffle Blocks: ${shuffleBlocks.mkString(" ")}")
 
-    /* end code taken from getBlockData */
+      /* code adapted from IndexShuffleBlockResolver getBlockData */
+      for (aShuffleBlock <- shuffleBlocks) {
+        val shuffleId = aShuffleBlock.split("_")(1)
+        val blockId = aShuffleBlock.split("_")(2)
+        val reduceId = aShuffleBlock.split("_")(3).toInt
 
+
+        val indexFile = new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.index")
+        logTrace(s"Filename for index: $indexFile")
+
+        val in = new DataInputStream(new FileInputStream(indexFile))
+        try {
+          ByteStreams.skipFully(in, reduceId * 8)
+          val offset = in.readLong()
+          val nextOffset = in.readLong()
+          val DONE = new FileSegmentManagedBuffer(
+            transportConf,
+            new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.data"),
+  //          getDataFile(blockId.shuffleId, blockId.mapId),
+            offset,
+            nextOffset - offset)
+          val forPrinting = DONE.nioByteBuffer()
+          logTrace(s"getBlockData for ${blockId} hashCode is: ${forPrinting.hashCode()}")
+          listener.onBlockFetchSuccess(aShuffleBlock, DONE)
+        } finally {
+          in.close()
+        }
+      }
+      /* end code adapted from getBlockData */
+    }
 
     // TODO do we need to do anything special here if there are no non-shuffle
     // blocks?

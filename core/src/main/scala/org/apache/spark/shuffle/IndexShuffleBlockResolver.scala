@@ -142,6 +142,10 @@ private[spark] class IndexShuffleBlockResolver(
       mapId: Int,
       lengths: Array[Long],
       dataTmp: File): Unit = {
+
+    // hacky - also need to change NettyBlockTransferService's RDMA_SHUFFLE
+    val RDMA_SHUFFLE = true
+
     val indexFile = getIndexFile(shuffleId, mapId)
     val indexTmp = Utils.tempFileWith(indexFile)
     try {
@@ -164,6 +168,7 @@ private[spark] class IndexShuffleBlockResolver(
       logTrace(s"writeIndexFileAndCommit temp data file is: ${dataTmp}")
       logTrace(s"writeIndexFileAndCommit temp index file is: ${indexTmp}")
 
+      // only for RDMA_SHUFFLE
       val backupDataFile = new File("/nscratch/sagark/spark-shuffle-data/shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data")
       val backupIndexFile = new File("/nscratch/sagark/spark-shuffle-data/shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index")
 
@@ -193,19 +198,22 @@ private[spark] class IndexShuffleBlockResolver(
             dataFile.delete()
           }
 
+          if (RDMA_SHUFFLE) {
+            if (backupIndexFile.exists()) {
+              backupIndexFile.delete()
+            }
+            if (backupDataFile.exists()) {
+              backupDataFile.delete()
+            }
 
-          if (backupIndexFile.exists()) {
-            backupIndexFile.delete()
-          }
-          if (backupDataFile.exists()) {
-            backupDataFile.delete()
-          }
-
-          Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
-          if (dataTmp != null && dataTmp.exists()) {
-            Files.copy(dataTmp.toPath(), backupDataFile.toPath())
+            Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
+            if (dataTmp != null && dataTmp.exists()) {
+              Files.copy(dataTmp.toPath(), backupDataFile.toPath())
+            }
           }
 
+          // TODO: for the real thing, need to remove these and fix some of the
+          // above checks...
           if (!indexTmp.renameTo(indexFile)) {
             throw new IOException("fail to rename file " + indexTmp + " to " + indexFile)
           }
@@ -243,7 +251,6 @@ private[spark] class IndexShuffleBlockResolver(
         offset,
         nextOffset - offset)
       val forPrinting = DONE.nioByteBuffer()
-//      logTrace(s"getBlockData for ${blockId} says element 1 is: ${forPrinting.getChar(1)}")
       logTrace(s"getBlockData for ${blockId} hashCode is: ${forPrinting.hashCode()}")
 
       DONE
