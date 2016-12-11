@@ -164,8 +164,8 @@ private[spark] class IndexShuffleBlockResolver(
       logTrace(s"writeIndexFileAndCommit temp data file is: ${dataTmp}")
       logTrace(s"writeIndexFileAndCommit temp index file is: ${indexTmp}")
 
-      val backupDataFile = new File("/scratch/sagark/spark-sample-out/data")
-      val backupIndexFile = new File("/scratch/sagark/spark-sample-out/index")
+      val backupDataFile = new File("/nscratch/sagark/spark-shuffle-data/shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data")
+      val backupIndexFile = new File("/nscratch/sagark/spark-shuffle-data/shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index")
 
       // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
       // the following check and rename are atomic.
@@ -193,8 +193,18 @@ private[spark] class IndexShuffleBlockResolver(
             dataFile.delete()
           }
 
-//          Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
-//          Files.copy(dataTmp.toPath(), backupDataFile.toPath())
+
+          if (backupIndexFile.exists()) {
+            backupIndexFile.delete()
+          }
+          if (backupDataFile.exists()) {
+            backupDataFile.delete()
+          }
+
+          Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
+          if (dataTmp != null && dataTmp.exists()) {
+            Files.copy(dataTmp.toPath(), backupDataFile.toPath())
+          }
 
           if (!indexTmp.renameTo(indexFile)) {
             throw new IOException("fail to rename file " + indexTmp + " to " + indexFile)
