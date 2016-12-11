@@ -236,6 +236,11 @@
         <enabled>false</enabled>
       </snapshots>
     </repository>
+	 <repository>
+		<id>rmemLib</id>
+		<name>RemoteBufferLibrary</name>
+		<url>file://${project.basedir}/rmemLib</url>
+	 </repository>
   </repositories>
   <pluginRepositories>
     <pluginRepository>
@@ -250,6 +255,16 @@
     </pluginRepository>
   </pluginRepositories>
   <dependencies>
+	 <dependency>
+		 <groupId>org.bytedeco.javacpp</groupId>
+		 <artifactId>remoteMemCpp</artifactId>
+		 <version>0.1</version>
+	 </dependency>
+	 <dependency>
+		 <groupId>ucb.remotebuf</groupId>
+		 <artifactId>remoteMemCore</artifactId>
+		 <version>0.1</version>
+	 </dependency>
     <!--
       This is a dummy dependency that is used to trigger the maven-shade plugin so that Spark's
       published POMs are flattened and do not contain variables. Without this dependency, some
