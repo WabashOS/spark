@@ -18,7 +18,7 @@
 package org.apache.spark.shuffle
 
 import java.io._
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 
 import com.google.common.io.ByteStreams
 
@@ -30,6 +30,8 @@ import org.apache.spark.network.netty.SparkTransportConf
 import org.apache.spark.shuffle.IndexShuffleBlockResolver.NOOP_REDUCE_ID
 import org.apache.spark.storage._
 import org.apache.spark.util.Utils
+
+import ucb.remotebuf._
 
 /**
  * Create and maintain the shuffle blocks' mapping between logic block and physical file location.
@@ -51,6 +53,7 @@ private[spark] class IndexShuffleBlockResolver(
   private lazy val blockManager = Option(_blockManager).getOrElse(SparkEnv.get.blockManager)
 
   private val transportConf = SparkTransportConf.fromSparkConf(conf, "shuffle")
+  private val BM = new RemoteBuf.BufferManager()
 
   def getDataFile(shuffleId: Int, mapId: Int): File = {
     val shufblockid = ShuffleDataBlockId(shuffleId, mapId, NOOP_REDUCE_ID)
@@ -169,8 +172,12 @@ private[spark] class IndexShuffleBlockResolver(
       logTrace(s"writeIndexFileAndCommit temp index file is: ${indexTmp}")
 
       // only for RDMA_SHUFFLE
-      val backupDataFile = new File("/nscratch/sagark/spark-shuffle-data/shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data")
-      val backupIndexFile = new File("/nscratch/sagark/spark-shuffle-data/shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index")
+      val DataBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data"
+      val IndexBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index"
+      val backupDataFname = "/nscratch/sagark/spark-shuffle-data/" + DataBaseName
+      val backupIndexFname = "/nscratch/sagark/spark-shuffle-data/" + IndexBaseName
+      val backupDataFile = new File(backupDataFname)
+      val backupIndexFile = new File(backupIndexFname)
 
       // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
       // the following check and rename are atomic.
@@ -207,6 +214,8 @@ private[spark] class IndexShuffleBlockResolver(
             }
 
             Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
+            val indexByteArray = Files.readAllBytes(Paths.get(indexTmp.toString()))
+            BM.write(IndexBaseName, indexByteArray, indexByteArray.length)
             if (dataTmp != null && dataTmp.exists()) {
               Files.copy(dataTmp.toPath(), backupDataFile.toPath())
             }
