@@ -11,8 +11,10 @@ object SimpleApp {
     val sc = new SparkContext(conf)
 
     /* Actual Spark code */
-    val C_path = "./source.c"
-    val H_path = "./source.h"
+    // val C_path = "./source.c"
+    // val H_path = "./source.h"
+    val C_path = "hdfs://f16/user/skarandikar/hsource.c"
+    val H_path = "hdfs://f16/user/skarandikar/hsource.h"
 
     /* CData is pretty big, but fits in mem */
     val CData = sc.textFile(C_path, 2).persist(StorageLevel.MEMORY_AND_DISK)
