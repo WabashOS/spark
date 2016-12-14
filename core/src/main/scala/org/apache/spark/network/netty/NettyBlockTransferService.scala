@@ -135,67 +135,27 @@ private[spark] class NettyBlockTransferService(
         val baseName = s"shuffle_${shuffleId}_${blockId}"
         val IndexBaseName = baseName + ".index"
         val DataBaseName = baseName + ".data"
+
+        // TODO: S: can we hardcode 1608?
         val IndexFileSize = BM.get_read_alloc(IndexBaseName)
         logTrace(s"RDMA got index alloc for ${baseName}.index file size as: ${IndexFileSize}")
         val indexFileRDMAIn = new Array[Byte](IndexFileSize)
-       
-
         BM.read(IndexBaseName, indexFileRDMAIn, IndexFileSize)
-/*        var fakehash = 0
-        for (i <- 0 until indexFileRDMAIn.length) {
-          fakehash += indexFileRDMAIn(i)
-        }
-        logTrace(s"fake index file hash for ${baseName}.index is ${fakehash}")
-*/
-
-
-
         logTrace(s"RDMA got read response from server for ${baseName}.index")
-
- /*       val indexFile = new File(s"/nscratch/sagark/spark-shuffle-data/" + IndexBaseName)
-        logTrace(s"Filename for index: $indexFile")
-*/
         val in = new DataInputStream(new ByteArrayInputStream(indexFileRDMAIn))
-
-/*        val inbackup = new DataInputStream(new FileInputStream(indexFile))
-        ByteStreams.skipFully(inbackup, reduceId * 8)*/
-//        logTrace(s"from disk for ${baseName}.index got offset ${inbackup.readLong()}")
-//        logTrace(s"from disk for ${baseName}.index got nextOffset ${inbackup.readLong()}")
-
-
-
-
 
         try {
           ByteStreams.skipFully(in, reduceId * 8)
           val offset = in.readLong()
-//          logTrace(s"from RDMA for ${baseName}.index got offset ${offset} and got from disk ${inbackup.readLong()}")
           val nextOffset = in.readLong()
-//          logTrace(s"from RDMA for ${baseName}.index got nextOffset ${nextOffset} and got from disk ${inbackup.readLong()}")
 
-
-
-
-// TODO get rid of the toInt s
-            val DataFileSize = (nextOffset - offset).toInt
-            logTrace(s"For ${baseName}.data file size is: ${DataFileSize}")
-            val dataFileRDMAIn = new Array[Byte](DataFileSize)
-           
-            BM.read_offset(DataBaseName, dataFileRDMAIn, DataFileSize, offset.toInt)
-
-            logTrace(s"RDMA got read response from server for ${baseName}.data")
-
-
-/*val DONE = new FileSegmentManagedBuffer(
-            transportConf,
-            new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.data"),
-//            getDataFile(blockId.shuffleId, blockId.mapId),
-            offset,
-            nextOffset - offset)
-//          val forPrinting = DONE.nioByteBuffer()
-//          logTrace(s"getBlockData for ${baseName} hashCode is: ${forPrinting.hashCode()}")*/
-//
-
+          // TODO get rid of the toInt s
+          val DataFileSize = (nextOffset - offset).toInt
+          logTrace(s"For ${baseName}.data file size is: ${DataFileSize}")
+          val dataFileRDMAIn = new Array[Byte](DataFileSize)
+         
+          BM.read_offset(DataBaseName, dataFileRDMAIn, DataFileSize, offset.toInt)
+          logTrace(s"RDMA got read response from server for ${baseName}.data")
           val DONE = new NioManagedBuffer(ByteBuffer.wrap(dataFileRDMAIn))
 
           listener.onBlockFetchSuccess(aShuffleBlock, DONE)

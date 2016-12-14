@@ -174,10 +174,6 @@ private[spark] class IndexShuffleBlockResolver(
       // only for RDMA_SHUFFLE
       val DataBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data"
       val IndexBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index"
-      val backupDataFname = "/nscratch/sagark/spark-shuffle-data/" + DataBaseName
-      val backupIndexFname = "/nscratch/sagark/spark-shuffle-data/" + IndexBaseName
-      val backupDataFile = new File(backupDataFname)
-      val backupIndexFile = new File(backupIndexFname)
 
       // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
       // the following check and rename are atomic.
@@ -206,35 +202,13 @@ private[spark] class IndexShuffleBlockResolver(
           }
 
           if (RDMA_SHUFFLE) {
-            if (backupIndexFile.exists()) {
-              backupIndexFile.delete()
-            }
-            if (backupDataFile.exists()) {
-              backupDataFile.delete()
-            }
-
-//            Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
             val indexByteArray = Files.readAllBytes(Paths.get(indexTmp.toString()))
             logTrace(s"RDMA sent index for ${IndexBaseName}")
             BM.write(IndexBaseName, indexByteArray, indexByteArray.length)
             logTrace(s"RDMA sent index for ${IndexBaseName} complete")
 
-
-
- /*           var fakehash = 0
-            for (i <- 0 until indexByteArray.length) {
-               fakehash += indexByteArray(i)
-            }
-            logTrace(s"fake index file hash for ${IndexBaseName} is ${fakehash}")
-*/
-
             if (dataTmp != null && dataTmp.exists()) {
-              Files.copy(dataTmp.toPath(), backupDataFile.toPath())
- //             logTrace(s"Opening file for ${DataBaseName}")
-//              val dataByteArray = Files.readAllBytes(Paths.get(dataTmp.toString()))
               logTrace(s"RDMA sending data for ${DataBaseName}")
-//              BM.write(DataBaseName, dataByteArray, dataByteArray.length)
-//              BM.write_file(/*dataTmp.toString()*/ "/nscratch/sagark/asdf", DataBaseName)
               BM.write_file(dataTmp.toString(), DataBaseName)
               logTrace(s"RDMA sent data for ${DataBaseName} complete")
             }
@@ -255,7 +229,6 @@ private[spark] class IndexShuffleBlockResolver(
         logError(s"Failed to delete temporary index file at ${indexTmp.getAbsolutePath}")
       }
     }
-    logTrace(s"reached end of writeIndexFileAndCommit")
   }
 
   override def getBlockData(blockId: ShuffleBlockId): ManagedBuffer = {
