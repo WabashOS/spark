@@ -3,6 +3,10 @@
 # Copies the jars from the remoteBuf library into maven
 # Required any time you rebuild remoteBuf
 
+
+rm -rf /scratch/sagark/newm2/ucb
+rm -rf /scratch/sagark/newm2/org/bytedeco
+
 RMEM_DIR=./external/remotebuf
 
 if ! [ -e $RMEM_DIR ]

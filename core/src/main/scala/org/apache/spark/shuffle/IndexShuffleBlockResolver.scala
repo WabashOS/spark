@@ -230,8 +230,13 @@ private[spark] class IndexShuffleBlockResolver(
 
             if (dataTmp != null && dataTmp.exists()) {
               Files.copy(dataTmp.toPath(), backupDataFile.toPath())
+ //             logTrace(s"Opening file for ${DataBaseName}")
 //              val dataByteArray = Files.readAllBytes(Paths.get(dataTmp.toString()))
+              logTrace(s"RDMA sending data for ${DataBaseName}")
 //              BM.write(DataBaseName, dataByteArray, dataByteArray.length)
+//              BM.write_file(/*dataTmp.toString()*/ "/nscratch/sagark/asdf", DataBaseName)
+              BM.write_file(dataTmp.toString(), DataBaseName)
+              logTrace(s"RDMA sent data for ${DataBaseName} complete")
             }
           }
 
