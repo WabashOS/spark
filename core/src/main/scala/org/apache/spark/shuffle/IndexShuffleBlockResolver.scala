@@ -213,7 +213,7 @@ private[spark] class IndexShuffleBlockResolver(
               backupDataFile.delete()
             }
 
-            Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
+//            Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
             val indexByteArray = Files.readAllBytes(Paths.get(indexTmp.toString()))
             logTrace(s"RDMA sent index for ${IndexBaseName}")
             BM.write(IndexBaseName, indexByteArray, indexByteArray.length)
@@ -221,12 +221,12 @@ private[spark] class IndexShuffleBlockResolver(
 
 
 
-            var fakehash = 0
+ /*           var fakehash = 0
             for (i <- 0 until indexByteArray.length) {
                fakehash += indexByteArray(i)
             }
             logTrace(s"fake index file hash for ${IndexBaseName} is ${fakehash}")
-
+*/
 
             if (dataTmp != null && dataTmp.exists()) {
               Files.copy(dataTmp.toPath(), backupDataFile.toPath())

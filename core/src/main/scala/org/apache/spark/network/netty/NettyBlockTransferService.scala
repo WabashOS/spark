@@ -140,24 +140,24 @@ private[spark] class NettyBlockTransferService(
        
 
         BM.read(IndexBaseName, indexFileRDMAIn, IndexFileSize)
-        var fakehash = 0
+/*        var fakehash = 0
         for (i <- 0 until indexFileRDMAIn.length) {
           fakehash += indexFileRDMAIn(i)
         }
         logTrace(s"fake index file hash for ${baseName}.index is ${fakehash}")
-
+*/
 
 
 
         logTrace(s"RDMA got read response from server for ${baseName}.index")
 
-        val indexFile = new File(s"/nscratch/sagark/spark-shuffle-data/" + IndexBaseName)
+ /*       val indexFile = new File(s"/nscratch/sagark/spark-shuffle-data/" + IndexBaseName)
         logTrace(s"Filename for index: $indexFile")
-
+*/
         val in = new DataInputStream(new ByteArrayInputStream(indexFileRDMAIn))
 
-        val inbackup = new DataInputStream(new FileInputStream(indexFile))
-        ByteStreams.skipFully(inbackup, reduceId * 8)
+/*        val inbackup = new DataInputStream(new FileInputStream(indexFile))
+        ByteStreams.skipFully(inbackup, reduceId * 8)*/
 //        logTrace(s"from disk for ${baseName}.index got offset ${inbackup.readLong()}")
 //        logTrace(s"from disk for ${baseName}.index got nextOffset ${inbackup.readLong()}")
 
@@ -167,9 +167,9 @@ private[spark] class NettyBlockTransferService(
         try {
           ByteStreams.skipFully(in, reduceId * 8)
           val offset = in.readLong()
-          logTrace(s"from RDMA for ${baseName}.index got offset ${offset} and got from disk ${inbackup.readLong()}")
+//          logTrace(s"from RDMA for ${baseName}.index got offset ${offset} and got from disk ${inbackup.readLong()}")
           val nextOffset = in.readLong()
-          logTrace(s"from RDMA for ${baseName}.index got nextOffset ${nextOffset} and got from disk ${inbackup.readLong()}")
+//          logTrace(s"from RDMA for ${baseName}.index got nextOffset ${nextOffset} and got from disk ${inbackup.readLong()}")
           val DONE = new FileSegmentManagedBuffer(
             transportConf,
             new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.data"),
