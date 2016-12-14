@@ -28,7 +28,7 @@ import scala.reflect.ClassTag
 
 import org.apache.spark.{SecurityManager, SparkConf}
 import org.apache.spark.network._
-import org.apache.spark.network.buffer.{FileSegmentManagedBuffer, ManagedBuffer}
+import org.apache.spark.network.buffer.{FileSegmentManagedBuffer, NioManagedBuffer, ManagedBuffer}
 import org.apache.spark.network.client.{RpcResponseCallback, TransportClientBootstrap, TransportClientFactory}
 import org.apache.spark.network.sasl.{SaslClientBootstrap, SaslServerBootstrap}
 import org.apache.spark.network.server._
@@ -134,6 +134,7 @@ private[spark] class NettyBlockTransferService(
 
         val baseName = s"shuffle_${shuffleId}_${blockId}"
         val IndexBaseName = baseName + ".index"
+        val DataBaseName = baseName + ".data"
         val IndexFileSize = BM.get_read_alloc(IndexBaseName)
         logTrace(s"RDMA got index alloc for ${baseName}.index file size as: ${IndexFileSize}")
         val indexFileRDMAIn = new Array[Byte](IndexFileSize)
@@ -164,20 +165,39 @@ private[spark] class NettyBlockTransferService(
 
 
 
+
         try {
           ByteStreams.skipFully(in, reduceId * 8)
           val offset = in.readLong()
 //          logTrace(s"from RDMA for ${baseName}.index got offset ${offset} and got from disk ${inbackup.readLong()}")
           val nextOffset = in.readLong()
 //          logTrace(s"from RDMA for ${baseName}.index got nextOffset ${nextOffset} and got from disk ${inbackup.readLong()}")
-          val DONE = new FileSegmentManagedBuffer(
+
+
+
+
+// TODO get rid of the toInt s
+            val DataFileSize = (nextOffset - offset).toInt
+            logTrace(s"For ${baseName}.data file size is: ${DataFileSize}")
+            val dataFileRDMAIn = new Array[Byte](DataFileSize)
+           
+            BM.read_offset(DataBaseName, dataFileRDMAIn, DataFileSize, offset.toInt)
+
+            logTrace(s"RDMA got read response from server for ${baseName}.data")
+
+
+/*val DONE = new FileSegmentManagedBuffer(
             transportConf,
             new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.data"),
 //            getDataFile(blockId.shuffleId, blockId.mapId),
             offset,
             nextOffset - offset)
 //          val forPrinting = DONE.nioByteBuffer()
-//          logTrace(s"getBlockData for ${baseName} hashCode is: ${forPrinting.hashCode()}")
+//          logTrace(s"getBlockData for ${baseName} hashCode is: ${forPrinting.hashCode()}")*/
+//
+
+          val DONE = new NioManagedBuffer(ByteBuffer.wrap(dataFileRDMAIn))
+
           listener.onBlockFetchSuccess(aShuffleBlock, DONE)
         } finally {
           in.close()
