@@ -39,6 +39,8 @@ import org.apache.spark.serializer.JavaSerializer
 import org.apache.spark.storage.{BlockId, StorageLevel}
 import org.apache.spark.util.Utils
 
+import ucb.remotebuf._
+
 /**
  * A BlockTransferService that uses Netty to fetch a set of blocks at at time.
  */
@@ -55,6 +57,7 @@ private[spark] class NettyBlockTransferService(
   private val serializer = new JavaSerializer(conf)
   private val authEnabled = securityManager.isAuthenticationEnabled()
   private val transportConf = SparkTransportConf.fromSparkConf(conf, "shuffle", numCores)
+  private val BM = new RemoteBuf.BufferManager()
 
   private[this] var transportContext: TransportContext = _
   private[this] var server: TransportServer = _
@@ -129,23 +132,52 @@ private[spark] class NettyBlockTransferService(
         val blockId = aShuffleBlock.split("_")(2)
         val reduceId = aShuffleBlock.split("_")(3).toInt
 
+        val baseName = s"shuffle_${shuffleId}_${blockId}"
+        val IndexBaseName = baseName + ".index"
+        val IndexFileSize = BM.get_read_alloc(IndexBaseName)
+        logTrace(s"RDMA got index alloc for ${baseName}.index file size as: ${IndexFileSize}")
+        val indexFileRDMAIn = new Array[Byte](IndexFileSize)
+       
 
-        val indexFile = new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.index")
+        BM.read(IndexBaseName, indexFileRDMAIn, IndexFileSize)
+        var fakehash = 0
+        for (i <- 0 until indexFileRDMAIn.length) {
+          fakehash += indexFileRDMAIn(i)
+        }
+        logTrace(s"fake index file hash for ${baseName}.index is ${fakehash}")
+
+
+
+
+        logTrace(s"RDMA got read response from server for ${baseName}.index")
+
+        val indexFile = new File(s"/nscratch/sagark/spark-shuffle-data/" + IndexBaseName)
         logTrace(s"Filename for index: $indexFile")
 
-        val in = new DataInputStream(new FileInputStream(indexFile))
+        val in = new DataInputStream(new ByteArrayInputStream(indexFileRDMAIn))
+
+        val inbackup = new DataInputStream(new FileInputStream(indexFile))
+        ByteStreams.skipFully(inbackup, reduceId * 8)
+//        logTrace(s"from disk for ${baseName}.index got offset ${inbackup.readLong()}")
+//        logTrace(s"from disk for ${baseName}.index got nextOffset ${inbackup.readLong()}")
+
+
+
+
         try {
           ByteStreams.skipFully(in, reduceId * 8)
           val offset = in.readLong()
+          logTrace(s"from RDMA for ${baseName}.index got offset ${offset} and got from disk ${inbackup.readLong()}")
           val nextOffset = in.readLong()
+          logTrace(s"from RDMA for ${baseName}.index got nextOffset ${nextOffset} and got from disk ${inbackup.readLong()}")
           val DONE = new FileSegmentManagedBuffer(
             transportConf,
             new File(s"/nscratch/sagark/spark-shuffle-data/shuffle_${shuffleId}_${blockId}.data"),
-  //          getDataFile(blockId.shuffleId, blockId.mapId),
+//            getDataFile(blockId.shuffleId, blockId.mapId),
             offset,
             nextOffset - offset)
-          val forPrinting = DONE.nioByteBuffer()
-          logTrace(s"getBlockData for ${blockId} hashCode is: ${forPrinting.hashCode()}")
+//          val forPrinting = DONE.nioByteBuffer()
+//          logTrace(s"getBlockData for ${baseName} hashCode is: ${forPrinting.hashCode()}")
           listener.onBlockFetchSuccess(aShuffleBlock, DONE)
         } finally {
           in.close()
@@ -156,26 +188,28 @@ private[spark] class NettyBlockTransferService(
 
     // TODO do we need to do anything special here if there are no non-shuffle
     // blocks?
-    try {
-      val blockFetchStarter = new RetryingBlockFetcher.BlockFetchStarter {
-        override def createAndStart(other_blockIds: Array[String], listener: BlockFetchingListener) {
-          val client = clientFactory.createClient(host, port)
-          new OneForOneBlockFetcher(client, appId, execId, other_blockIds.toArray, listener).start()
+    if (!(other_blockIds.length == 0)) {
+      try {
+        val blockFetchStarter = new RetryingBlockFetcher.BlockFetchStarter {
+          override def createAndStart(other_blockIds: Array[String], listener: BlockFetchingListener) {
+            val client = clientFactory.createClient(host, port)
+            new OneForOneBlockFetcher(client, appId, execId, other_blockIds.toArray, listener).start()
+          }
         }
-      }
 
-      val maxRetries = transportConf.maxIORetries()
-      if (maxRetries > 0) {
-        // Note this Fetcher will correctly handle maxRetries == 0; we avoid it just in case there's
-        // a bug in this code. We should remove the if statement once we're sure of the stability.
-        new RetryingBlockFetcher(transportConf, blockFetchStarter, other_blockIds, listener).start()
-      } else {
-        blockFetchStarter.createAndStart(other_blockIds, listener)
+        val maxRetries = transportConf.maxIORetries()
+        if (maxRetries > 0) {
+          // Note this Fetcher will correctly handle maxRetries == 0; we avoid it just in case there's
+          // a bug in this code. We should remove the if statement once we're sure of the stability.
+          new RetryingBlockFetcher(transportConf, blockFetchStarter, other_blockIds, listener).start()
+        } else {
+          blockFetchStarter.createAndStart(other_blockIds, listener)
+        }
+      } catch {
+        case e: Exception =>
+          logError("Exception while beginning fetchBlocks", e)
+          other_blockIds.foreach(listener.onBlockFetchFailure(_, e))
       }
-    } catch {
-      case e: Exception =>
-        logError("Exception while beginning fetchBlocks", e)
-        other_blockIds.foreach(listener.onBlockFetchFailure(_, e))
     }
   }
 

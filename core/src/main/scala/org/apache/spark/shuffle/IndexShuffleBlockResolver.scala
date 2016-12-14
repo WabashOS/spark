@@ -215,9 +215,23 @@ private[spark] class IndexShuffleBlockResolver(
 
             Files.copy(indexTmp.toPath(), backupIndexFile.toPath())
             val indexByteArray = Files.readAllBytes(Paths.get(indexTmp.toString()))
+            logTrace(s"RDMA sent index for ${IndexBaseName}")
             BM.write(IndexBaseName, indexByteArray, indexByteArray.length)
+            logTrace(s"RDMA sent index for ${IndexBaseName} complete")
+
+
+
+            var fakehash = 0
+            for (i <- 0 until indexByteArray.length) {
+               fakehash += indexByteArray(i)
+            }
+            logTrace(s"fake index file hash for ${IndexBaseName} is ${fakehash}")
+
+
             if (dataTmp != null && dataTmp.exists()) {
               Files.copy(dataTmp.toPath(), backupDataFile.toPath())
+//              val dataByteArray = Files.readAllBytes(Paths.get(dataTmp.toString()))
+//              BM.write(DataBaseName, dataByteArray, dataByteArray.length)
             }
           }
 
@@ -236,6 +250,7 @@ private[spark] class IndexShuffleBlockResolver(
         logError(s"Failed to delete temporary index file at ${indexTmp.getAbsolutePath}")
       }
     }
+    logTrace(s"reached end of writeIndexFileAndCommit")
   }
 
   override def getBlockData(blockId: ShuffleBlockId): ManagedBuffer = {
