@@ -30,17 +30,12 @@ import ucb.remotebuf._
 /**
  * Remote Memory (disaggregation) Store
  *
- * Behaves as a DiskStore but tries to use remote memory instead of a disk. For now this assumes that RMEM is
- * inexhaustible, eventually we'll do something more clever.
+ * For now this assumes that RMEM is inexhaustible, eventually we'll do something more clever.
  */
-private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) extends Logging {
+private[spark] class RmemStore() extends Logging {
 
-  val BM = new RemoteBuf.BufferManager()
+  val BM = new RemoteBuf.BufferManager("10.11.49.90", "12345")
 
-  val diskStore: DiskStore = new DiskStore(conf, diskManager)
-
-  /* Use either a disk or remote memory for storage */
-  val useDisk = false
   val logStats = true
 
   /* Various counters for performance monitoring */
@@ -52,26 +47,8 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
   var timeReading: Long = 0 // Total time spent reading from Rmem
   var timeInRmem: Long = 0 // Total time spent in the Rmem Library
 
-  private def diskOrRmem[T](dFun: => T, rFun: => T): T = {
-    val startTime = if (logStats) System.currentTimeMillis() else 0
-
-    val ret = if (useDisk) {
-      dFun
-    } else {
-      rFun
-    }
-
-    if(logStats) {
-      val endTime = System.currentTimeMillis()
-      timeInRmem += endTime - startTime
-    }
-
-    ret
-  }
-
   def getSize(blockId: BlockId): Long = {
-    diskOrRmem(diskStore.getSize(blockId),
-      rmem_getSize(blockId))
+    rmem_getSize(blockId)
   }
 
   private def rmem_getSize(blockId: BlockId): Long = {
@@ -91,9 +68,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
   def put(blockId: BlockId)(writeFunc: java.io.OutputStream => Unit): Unit = {
     val startTime = if (logStats) System.currentTimeMillis() else 0
 
-    diskOrRmem(
-      diskStore.put(blockId)(writeFunc),
-      rmem_put(blockId)(writeFunc))
+    rmem_put(blockId)(writeFunc)
 
     if (logStats) {
       val blockSize = getSize(blockId)
@@ -140,10 +115,8 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
   def putBytes(blockId: BlockId, bytes: ChunkedByteBuffer): Unit = {
     val startTime = if (logStats) System.currentTimeMillis() else 0
 
-    diskOrRmem(
-      diskStore.putBytes(blockId, bytes),
-      rmem_putBytes(blockId, bytes)
-    )
+    rmem_putBytes(blockId, bytes)
+
     if (logStats) {
       val blockSize = bytes.size
       totalStored += blockSize
@@ -191,10 +164,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
   def getBytes(blockId: BlockId): ChunkedByteBuffer = {
     val startTime = if (logStats) System.currentTimeMillis() else 0
 
-    val bytes = diskOrRmem(
-      diskStore.getBytes(blockId),
-      rmem_getBytes(blockId)
-    )
+    val bytes = rmem_getBytes(blockId)
 
     if(logStats) {
       val endTime = System.currentTimeMillis()
@@ -238,9 +208,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
       curStored -= size
     }
 
-    diskOrRmem(
-      diskStore.remove(blockId),
-      rmem_remove(blockId))
+    rmem_remove(blockId)
   }
 
   private def rmem_remove(blockId: BlockId): Boolean = {
@@ -262,10 +230,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
   }
 
   def contains(blockId: BlockId): Boolean = {
-    diskOrRmem(
-      diskStore.contains(blockId),
-      rmem_contains(blockId)
-    )
+    rmem_contains(blockId)
   }
 
   private def rmem_contains(blockId: BlockId): Boolean = {

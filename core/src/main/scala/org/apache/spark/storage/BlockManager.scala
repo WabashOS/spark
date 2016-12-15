@@ -1367,7 +1367,6 @@ private[spark] class BlockManager(
     rpcEnv.stop(slaveEndpoint)
     blockInfoManager.clear()
     memoryStore.clear()
-    diskStore.shutdown()
     futureExecutionContext.shutdownNow()
     logInfo("BlockManager stopped")
   }

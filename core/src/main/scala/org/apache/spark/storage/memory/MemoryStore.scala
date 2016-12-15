@@ -24,14 +24,12 @@ import java.util.LinkedHashMap
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
-
 import com.google.common.io.ByteStreams
-
 import org.apache.spark.{SparkConf, TaskContext}
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.{MemoryManager, MemoryMode}
 import org.apache.spark.serializer.{SerializationStream, SerializerManager}
-import org.apache.spark.storage.{BlockId, BlockInfoManager, StorageLevel, StreamBlockId}
+import org.apache.spark.storage._
 import org.apache.spark.unsafe.Platform
 import org.apache.spark.util.{SizeEstimator, Utils}
 import org.apache.spark.util.collection.SizeTrackingVector
@@ -53,6 +51,15 @@ private case class SerializedMemoryEntry[T](
     memoryMode: MemoryMode,
     classTag: ClassTag[T]) extends MemoryEntry[T] {
   def size: Long = buffer.size
+}
+
+private case class RemoteMemoryEntry[T](
+    /* Size before being written to rmem (i.e. how big it will be in the memory store) */
+    localSize: Long,
+    memoryMode: MemoryMode,
+    classTag: ClassTag[T]) extends MemoryEntry[T] {
+  /* RemoteMemoryEntries are just placeholders for remote mem and take no storage memory */
+  val size = 0L
 }
 
 private[storage] trait BlockEvictionHandler {
@@ -88,6 +95,9 @@ private[spark] class MemoryStore(
   // acquiring or releasing unroll memory, must be synchronized on `memoryManager`!
 
   private val entries = new LinkedHashMap[BlockId, MemoryEntry[_]](32, 0.75f, true)
+
+  private val rmemStore = new RmemStore()
+  private val useRmem: Boolean = true
 
   // A mapping from taskAttemptId to amount of memory used for unrolling a block (in bytes)
   // All accesses of this map are assumed to have manually synchronized on `memoryManager`
@@ -406,6 +416,42 @@ private[spark] class MemoryStore(
     }
   }
 
+  def fetchFromRmem[T](
+      blockId: BlockId,
+      rmemEntry: RemoteMemoryEntry[T]): Either[Iterator[_], ChunkedByteBuffer] = {
+
+    logInfo(s"(RMEM) Attempting to fetch block $blockId from rmem")
+    /* Try to get storage space for this new block (potentially evicting older blocks) */
+    val success = memoryManager.acquireStorageMemory(
+      blockId, rmemEntry.localSize, rmemEntry.memoryMode)
+    assert(success, "Couldn't acquire enough storage memory to fetch rmem block")
+
+    val level: StorageLevel = blockInfoManager.lockForReading(blockId) match {
+      case None => throw new IllegalArgumentException(s"Couldn't find $blockId in BlockInfoManager")
+      case Some(i) => i.level
+    }
+    blockInfoManager.unlock(blockId)
+
+    val bytes = rmemStore.getBytes(blockId)
+    val (localEntry, result) = if (level.deserialized) {
+      val values = serializerManager.dataDeserializeStream(
+        blockId, bytes.toInputStream(true))(rmemEntry.classTag).toArray(rmemEntry.classTag)
+      val desEntry = new DeserializedMemoryEntry[T](values, rmemEntry.localSize, rmemEntry.classTag)
+
+      (desEntry, Left(values.toIterator))
+    } else {
+      val serEntry = new SerializedMemoryEntry[T](bytes, rmemEntry.memoryMode, rmemEntry.classTag)
+      (serEntry, Right(bytes))
+    }
+
+    /* Remove old rmem entry and insert new local entry */
+    entries.synchronized {
+      entries.remove(blockId)
+      entries.put(blockId, localEntry)
+    }
+    result
+  }
+
   def getBytes(blockId: BlockId): Option[ChunkedByteBuffer] = {
     val entry = entries.synchronized { entries.get(blockId) }
     entry match {
@@ -413,6 +459,12 @@ private[spark] class MemoryStore(
       case e: DeserializedMemoryEntry[_] =>
         throw new IllegalArgumentException("should only call getBytes on serialized blocks")
       case SerializedMemoryEntry(bytes, _, _) => Some(bytes)
+      case rmemEntry: RemoteMemoryEntry[_] =>
+        fetchFromRmem(blockId, rmemEntry) match {
+          case Left(_) =>
+            throw new IllegalArgumentException("should only call getBytes on serialized blocks")
+          case Right(bytes) => Some(bytes)
+        }
     }
   }
 
@@ -425,6 +477,12 @@ private[spark] class MemoryStore(
       case DeserializedMemoryEntry(values, _, _) =>
         val x = Some(values)
         x.map(_.iterator)
+      case rmemEntry: RemoteMemoryEntry[_] =>
+        fetchFromRmem(blockId, rmemEntry) match {
+          case Left(values) => Some(values)
+          case Right(_) =>
+            throw new IllegalArgumentException("should only call getBytes on deserialized blocks")
+        }
     }
   }
 
@@ -435,11 +493,16 @@ private[spark] class MemoryStore(
     if (entry != null) {
       entry match {
         case SerializedMemoryEntry(buffer, _, _) => buffer.dispose()
+        case RemoteMemoryEntry(_, _, _) => rmemStore.remove(blockId)
         case _ =>
       }
-      memoryManager.releaseStorageMemory(entry.size, entry.memoryMode)
-      logDebug(s"Block $blockId of size ${entry.size} dropped " +
-        s"from memory (free ${maxMemory - blocksMemoryUsed})")
+      if (! entry.isInstanceOf[RemoteMemoryEntry[_]]) {
+        memoryManager.releaseStorageMemory(entry.size, entry.memoryMode)
+        logDebug(s"Block $blockId of size ${entry.size} dropped " +
+          s"from memory (free ${maxMemory - blocksMemoryUsed})")
+      } else {
+        logDebug(s"Block $blockId removed from remote memory")
+      }
       true
     } else {
       false
@@ -484,7 +547,12 @@ private[spark] class MemoryStore(
       val rddToAdd = blockId.flatMap(getRddId)
       val selectedBlocks = new ArrayBuffer[BlockId]
       def blockIsEvictable(blockId: BlockId, entry: MemoryEntry[_]): Boolean = {
-        entry.memoryMode == memoryMode && (rddToAdd.isEmpty || rddToAdd != getRddId(blockId))
+        entry match {
+          case RemoteMemoryEntry(_, _, _) => false
+/*          case _ => entry.memoryMode == memoryMode &&
+                     (rddToAdd.isEmpty || rddToAdd != getRddId(blockId))*/
+          case _ => entry.memoryMode == memoryMode
+        }
       }
       // This is synchronized to ensure that the set of entries is not changed
       // (because of getValue or getBytes) while traversing the iterator, as that
@@ -511,17 +579,43 @@ private[spark] class MemoryStore(
         val data = entry match {
           case DeserializedMemoryEntry(values, _, _) => Left(values)
           case SerializedMemoryEntry(buffer, _, _) => Right(buffer)
+          case _ => throw new IllegalArgumentException("Can't drop remote block!")
         }
-        val newEffectiveStorageLevel =
-          blockEvictionHandler.dropFromMemory(blockId, () => data)(entry.classTag)
-        if (newEffectiveStorageLevel.isValid) {
-          // The block is still present in at least one store, so release the lock
-          // but don't delete the block info
+        if (useRmem) {
+          logInfo(s"(RMEM) Evicting block $blockId to remote memory")
+          if (! rmemStore.contains(blockId)) {
+            /* Put data in remote memory */
+            data match {
+              case Left(values) => rmemStore.put(blockId) { fileOutputStream =>
+                serializerManager.dataSerializeStream(
+                  blockId,
+                  fileOutputStream,
+                  values.toIterator)(entry.classTag)
+              }
+              case Right(buffer) => rmemStore.putBytes(blockId, buffer)
+            }
+          }
+
+          /* Change the meta-data to indicate the buffer is remote */
+          remove(blockId)
+          val rmemEntry = new RemoteMemoryEntry[T](
+            entry.size, entry.memoryMode, entry.classTag)
+          entries.synchronized {
+            entries.put(blockId, rmemEntry)
+          }
           blockInfoManager.unlock(blockId)
         } else {
-          // The block isn't present in any store, so delete the block info so that the
-          // block can be stored again
-          blockInfoManager.removeBlock(blockId)
+          val newEffectiveStorageLevel =
+            blockEvictionHandler.dropFromMemory(blockId, () => data)(entry.classTag)
+          if (newEffectiveStorageLevel.isValid) {
+            // The block is still present in at least one store, so release the lock
+            // but don't delete the block info
+            blockInfoManager.unlock(blockId)
+          } else {
+            // The block isn't present in any store, so delete the block info so that the
+            // block can be stored again
+            blockInfoManager.removeBlock(blockId)
+          }
         }
       }
 
