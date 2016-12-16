@@ -35,7 +35,16 @@ import ucb.remotebuf._
  */
 private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) extends Logging {
 
-  val BM = new RemoteBuf.BufferManager()
+  val RmemPort = conf.get("spark.executor.RmemPort", "12345")
+  val RmemServer = try {
+    conf.get("spark.executor.RmemServer")
+  } catch {
+    case e: NoSuchElementException =>
+      throw new IllegalStateException("Missing Rmem settings, please set " + e.getMessage + " in spark-defaults.conf")
+  }
+  logInfo("Rmem Server: " + RmemServer + ":" + RmemPort)
+
+  val BM = new RemoteBuf.BufferManager(RmemServer, RmemPort)
 
   val diskStore: DiskStore = new DiskStore(conf, diskManager)
 
@@ -43,7 +52,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
   val useDisk = false
   val logStats = true
 
-  /* Various counters for performance monitoring */
+  /* Various counters for performance monitoring (time in ns, sizes in bytes)*/
   var totalStored: Long = 0 // Total number of bytes written to Rmem/Disk
   var timeStoring: Long = 0 // Total time spent writing to Rmem
   var curStored: Long = 0 // Total number of bytes stored on Rmem/Disk right now (used to calculate maxStored)
@@ -53,7 +62,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
   var timeInRmem: Long = 0 // Total time spent in the Rmem Library
 
   private def diskOrRmem[T](dFun: => T, rFun: => T): T = {
-    val startTime = if (logStats) System.currentTimeMillis() else 0
+    val startTime = if (logStats) System.nanoTime() else 0
 
     val ret = if (useDisk) {
       dFun
@@ -62,7 +71,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
     }
 
     if(logStats) {
-      val endTime = System.currentTimeMillis()
+      val endTime = System.nanoTime()
       timeInRmem += endTime - startTime
     }
 
@@ -89,7 +98,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
   }
 
   def put(blockId: BlockId)(writeFunc: java.io.OutputStream => Unit): Unit = {
-    val startTime = if (logStats) System.currentTimeMillis() else 0
+    val startTime = if (logStats) System.nanoTime() else 0
 
     diskOrRmem(
       diskStore.put(blockId)(writeFunc),
@@ -101,7 +110,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
       curStored += blockSize
       maxStored = if (curStored > maxStored) curStored else maxStored
 
-      val endTime = System.currentTimeMillis()
+      val endTime = System.nanoTime()
       timeStoring += endTime - startTime
     }
   }
@@ -114,7 +123,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
       throw new IllegalStateException(s"Block $blockId is already present in the RMEM store")
     }
 
-    val startTime = System.currentTimeMillis
+    val startTime = System.nanoTime
 
     val RBuf = BM.createBuffer(blockId.name)
     val RBufStream = new ROutputStream(RBuf)
@@ -131,14 +140,14 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
       RBufStream.close()
     }
 
-    val finishTime = System.currentTimeMillis
+    val finishTime = System.nanoTime
     logDebug("Block %s stored to RMEM in %d ms".format(
       blockId.name,
       finishTime - startTime))
   }
 
   def putBytes(blockId: BlockId, bytes: ChunkedByteBuffer): Unit = {
-    val startTime = if (logStats) System.currentTimeMillis() else 0
+    val startTime = if (logStats) System.nanoTime() else 0
 
     diskOrRmem(
       diskStore.putBytes(blockId, bytes),
@@ -150,7 +159,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
       curStored += blockSize
       maxStored = if (curStored > maxStored) curStored else maxStored
 
-      val endTime = System.currentTimeMillis()
+      val endTime = System.nanoTime()
       timeStoring += endTime - startTime
     }
   }
@@ -165,7 +174,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
       throw new IllegalStateException(s"Block $blockId is already present in the RMEM store")
     }
 
-    val startTime = System.currentTimeMillis
+    val startTime = System.nanoTime
 
     val RBuf = BM.createBuffer(blockId.name)
     val RBufChan = new RWritableByteChannel(RBuf)
@@ -182,14 +191,14 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
       RBufChan.close()
     }
 
-    val finishTime = System.currentTimeMillis
+    val finishTime = System.nanoTime
     logDebug("Block %s stored to RMEM in %d ms".format(
       blockId.name,
       finishTime - startTime))
   }
 
   def getBytes(blockId: BlockId): ChunkedByteBuffer = {
-    val startTime = if (logStats) System.currentTimeMillis() else 0
+    val startTime = if (logStats) System.nanoTime() else 0
 
     val bytes = diskOrRmem(
       diskStore.getBytes(blockId),
@@ -197,7 +206,7 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
     )
 
     if(logStats) {
-      val endTime = System.currentTimeMillis()
+      val endTime = System.nanoTime()
 
       totalRead += bytes.size
       timeReading += endTime - startTime
@@ -274,13 +283,14 @@ private[spark] class RmemStore(conf: SparkConf, diskManager: DiskBlockManager) e
   }
 
   def shutdown(): Unit = {
+    val conv: Double = 1E-6
     if (logStats) {
       logInfo(s"(RmemStoreStats), totalWritten, $totalStored")
       logInfo(s"(RmemStoreStats), totalRead, $totalRead")
       logInfo(s"(RmemStoreStats), maximumSize, $maxStored")
-      logInfo(s"(RmemStoreStats), timeWriting, $timeStoring")
-      logInfo(s"(RmemStoreStats), timeReading, $timeReading")
-      logInfo("(RmemStoreStats), timeOther, " + (timeInRmem - (timeStoring + timeReading)))
+      logInfo(s"(RmemStoreStats), timeWriting, " + timeStoring*conv)
+      logInfo(s"(RmemStoreStats), timeReading, " + timeReading*conv)
+      logInfo("(RmemStoreStats), timeOther, " + (timeInRmem - (timeStoring + timeReading))*conv)
     }
   }
 }
