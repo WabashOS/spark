@@ -34,7 +34,7 @@ import ucb.remotebuf._
  */
 private[spark] class RmemStore() extends Logging {
 
-  val BM = new RemoteBuf.BufferManager("10.11.49.90", "12345")
+  val BM = new RemoteBuf.BufferManager("f6", "12345")
 
   val logStats = true
 
@@ -58,10 +58,9 @@ private[spark] class RmemStore() extends Logging {
       return BM.getBuffer(blockId.name).getSize()
     } catch {
       /* Disk store would create an empty file and return 0 here. We are more strict */
-      case ex: Throwable => {
+      case ex: Throwable =>
         logWarning(s"Getting size of non-existent block $blockId")
         return 0L
-      }
     }
   }
 
@@ -218,10 +217,9 @@ private[spark] class RmemStore() extends Logging {
         BM.deleteBuffer(blockId.name)
         true
       } catch {
-        case _: Throwable => {
+        case _: Throwable =>
           logWarning(s"Failed to delete buffer $blockId")
           false
-        }
       }
     } else {
       logWarning(s"Removing non-existent buffer $blockId")

@@ -516,6 +516,7 @@ private[spark] class MemoryStore(
     onHeapUnrollMemoryMap.clear()
     offHeapUnrollMemoryMap.clear()
     memoryManager.releaseAllStorageMemory()
+    rmemStore.shutdown()
     logInfo("MemoryStore cleared")
   }
 
