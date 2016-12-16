@@ -45,10 +45,17 @@ private[spark] class RmemStore() extends Logging {
   var maxStored: Long = 0 // Maximum bytes stored on Rmem/Disk at any one time
   var totalRead: Long = 0 // Total number of bytes read back from Rmem
   var timeReading: Long = 0 // Total time spent reading from Rmem
-  var timeInRmem: Long = 0 // Total time spent in the Rmem Library
+  var timeOther: Long = 0 // Total time spent in the Rmem Library
 
   def getSize(blockId: BlockId): Long = {
-    rmem_getSize(blockId)
+    val startTime = System.nanoTime()
+
+    val res = rmem_getSize(blockId)
+
+    val endTime = System.nanoTime()
+    timeOther += endTime - startTime
+
+    res
   }
 
   private def rmem_getSize(blockId: BlockId): Long = {
@@ -65,7 +72,7 @@ private[spark] class RmemStore() extends Logging {
   }
 
   def put(blockId: BlockId)(writeFunc: java.io.OutputStream => Unit): Unit = {
-    val startTime = if (logStats) System.currentTimeMillis() else 0
+    val startTime = if (logStats) System.nanoTime() else 0
 
     rmem_put(blockId)(writeFunc)
 
@@ -75,7 +82,7 @@ private[spark] class RmemStore() extends Logging {
       curStored += blockSize
       maxStored = if (curStored > maxStored) curStored else maxStored
 
-      val endTime = System.currentTimeMillis()
+      val endTime = System.nanoTime()
       timeStoring += endTime - startTime
     }
   }
@@ -88,7 +95,7 @@ private[spark] class RmemStore() extends Logging {
       throw new IllegalStateException(s"Block $blockId is already present in the RMEM store")
     }
 
-    val startTime = System.currentTimeMillis
+    val startTime = System.nanoTime
 
     val RBuf = BM.createBuffer(blockId.name)
     val RBufStream = new ROutputStream(RBuf)
@@ -105,14 +112,14 @@ private[spark] class RmemStore() extends Logging {
       RBufStream.close()
     }
 
-    val finishTime = System.currentTimeMillis
+    val finishTime = System.nanoTime
     logDebug("Block %s stored to RMEM in %d ms".format(
       blockId.name,
       finishTime - startTime))
   }
 
   def putBytes(blockId: BlockId, bytes: ChunkedByteBuffer): Unit = {
-    val startTime = if (logStats) System.currentTimeMillis() else 0
+    val startTime = if (logStats) System.nanoTime() else 0
 
     rmem_putBytes(blockId, bytes)
 
@@ -122,7 +129,7 @@ private[spark] class RmemStore() extends Logging {
       curStored += blockSize
       maxStored = if (curStored > maxStored) curStored else maxStored
 
-      val endTime = System.currentTimeMillis()
+      val endTime = System.nanoTime()
       timeStoring += endTime - startTime
     }
   }
@@ -137,7 +144,7 @@ private[spark] class RmemStore() extends Logging {
       throw new IllegalStateException(s"Block $blockId is already present in the RMEM store")
     }
 
-    val startTime = System.currentTimeMillis
+    val startTime = System.nanoTime
 
     val RBuf = BM.createBuffer(blockId.name)
     val RBufChan = new RWritableByteChannel(RBuf)
@@ -154,19 +161,19 @@ private[spark] class RmemStore() extends Logging {
       RBufChan.close()
     }
 
-    val finishTime = System.currentTimeMillis
+    val finishTime = System.nanoTime
     logDebug("Block %s stored to RMEM in %d ms".format(
       blockId.name,
       finishTime - startTime))
   }
 
   def getBytes(blockId: BlockId): ChunkedByteBuffer = {
-    val startTime = if (logStats) System.currentTimeMillis() else 0
+    val startTime = if (logStats) System.nanoTime() else 0
 
     val bytes = rmem_getBytes(blockId)
 
     if(logStats) {
-      val endTime = System.currentTimeMillis()
+      val endTime = System.nanoTime()
 
       totalRead += bytes.size
       timeReading += endTime - startTime
@@ -201,13 +208,19 @@ private[spark] class RmemStore() extends Logging {
   }
 
   def remove(blockId: BlockId): Boolean = {
+    val startTime = System.nanoTime()
     if (logStats) {
       val size = getSize(blockId)
       totalStored -= size
       curStored -= size
     }
 
-    rmem_remove(blockId)
+    val res = rmem_remove(blockId)
+
+    val endTime = System.nanoTime()
+    timeOther += endTime - startTime
+
+    res
   }
 
   private def rmem_remove(blockId: BlockId): Boolean = {
@@ -228,7 +241,13 @@ private[spark] class RmemStore() extends Logging {
   }
 
   def contains(blockId: BlockId): Boolean = {
-    rmem_contains(blockId)
+    val startTime = System.nanoTime()
+    val res = rmem_contains(blockId)
+
+    val endTime = System.nanoTime()
+    timeOther += endTime - startTime
+
+    res
   }
 
   private def rmem_contains(blockId: BlockId): Boolean = {
@@ -241,9 +260,9 @@ private[spark] class RmemStore() extends Logging {
       logInfo(s"(RmemStoreStats), totalWritten, $totalStored")
       logInfo(s"(RmemStoreStats), totalRead, $totalRead")
       logInfo(s"(RmemStoreStats), maximumSize, $maxStored")
-      logInfo(s"(RmemStoreStats), timeWriting, $timeStoring")
-      logInfo(s"(RmemStoreStats), timeReading, $timeReading")
-      logInfo("(RmemStoreStats), timeOther, " + (timeInRmem - (timeStoring + timeReading)))
+      logInfo(s"(RmemStoreStats), timeWriting, " + (timeStoring * (1E-6).asInstanceOf[Double]))
+      logInfo(s"(RmemStoreStats), timeReading, " + (timeReading * (1E-6).asInstanceOf[Double]))
+      logInfo("(RmemStoreStats), timeOther, " + timeOther*(1E-6).asInstanceOf[Double])
     }
   }
 }
