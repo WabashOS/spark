@@ -209,7 +209,9 @@ final class ShuffleBlockFetcherIterator(
     var totalBlocks = 0
     for ((address, blockInfos) <- blocksByAddress) {
       totalBlocks += blockInfos.size
-      if (address.executorId == blockManager.blockManagerId.executorId) {
+      // TODO S: need to track local blocks in writeIndexFileAndCommit and
+      // keep them locally? instead we just say everything is remote for now...
+      if (false && (address.executorId == blockManager.blockManagerId.executorId)) {
         // Filter out zero-sized blocks
         localBlocks ++= blockInfos.filter(_._2 != 0).map(_._1)
         numBlocksToFetch += localBlocks.size

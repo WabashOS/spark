@@ -146,87 +146,40 @@ private[spark] class IndexShuffleBlockResolver(
       lengths: Array[Long],
       dataTmp: File): Unit = {
 
-    // hacky - also need to change NettyBlockTransferService's RDMA_SHUFFLE
-    val RDMA_SHUFFLE = true
+    val bbuf = new ByteArrayOutputStream()
+    val out2 = new DataOutputStream(bbuf)
 
-    val indexFile = getIndexFile(shuffleId, mapId)
-    val indexTmp = Utils.tempFileWith(indexFile)
-    try {
-      val out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(indexTmp)))
-      Utils.tryWithSafeFinally {
-        // We take in lengths of each block, need to convert it to offsets.
-        var offset = 0L
-        out.writeLong(offset)
-        for (length <- lengths) {
-          offset += length
-          out.writeLong(offset)
-        }
-      } {
-        out.close()
-      }
+    var offset = 0L
+    out2.writeLong(offset)
+    for (length <- lengths) {
+      offset += length
+      out2.writeLong(offset)
+    }
+    out2.flush()
+    out2.close()
 
-      val dataFile = getDataFile(shuffleId, mapId)
-      logTrace(s"writeIndexFileAndCommit using real data file: ${dataFile}")
-      logTrace(s"writeIndexFileAndCommit using real index file: ${indexFile}")
-      logTrace(s"writeIndexFileAndCommit temp data file is: ${dataTmp}")
-      logTrace(s"writeIndexFileAndCommit temp index file is: ${indexTmp}")
+    val dataFile = getDataFile(shuffleId, mapId)
+    logTrace(s"writeIndexFileAndCommit using real data file: ${dataFile}")
+    logTrace(s"writeIndexFileAndCommit temp data file is: ${dataTmp}")
 
-      // only for RDMA_SHUFFLE
-      val DataBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data"
-      val IndexBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index"
+    val DataBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data"
+    val IndexBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index"
 
-      // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
-      // the following check and rename are atomic.
-      synchronized {
-        val existingLengths = checkIndexAndDataFile(indexFile, dataFile, lengths.length)
-        if (existingLengths != null) {
-          logTrace(s"writeIndexFileAndCommit someone else already wrote the data")
-          // Another attempt for the same task has already written our map outputs successfully,
-          // so just use the existing partition lengths and delete our temporary map outputs.
-          System.arraycopy(existingLengths, 0, lengths, 0, lengths.length)
-          if (dataTmp != null && dataTmp.exists()) {
-            dataTmp.delete()
-          }
-          indexTmp.delete()
-        } else {
-          // S: it appears that each mapper writes one of these even if there 
-          // isn't really anything in there
-          logTrace(s"writeIndexFileAndCommit first successful map output write for ${dataFile}")
-          // This is the first successful attempt in writing the map outputs for this task,
-          // so override any existing index and data files with the ones we wrote.
-          if (indexFile.exists()) {
-            indexFile.delete()
-          }
-          if (dataFile.exists()) {
-            dataFile.delete()
-          }
+    // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
+    // the following check and rename are atomic.
+    synchronized {
+      // TODO: S: cheaper to just write again over RDMA vs reading to check each time?
+      logTrace(s"writeIndexFileAndCommit first successful map output write for ${dataFile}")
+      val indexByteArray = bbuf.toByteArray()
+      logTrace(s"RDMA sent index for ${IndexBaseName}")
+      BM.write(IndexBaseName, indexByteArray, indexByteArray.length)
+      logTrace(s"RDMA sent index for ${IndexBaseName} complete")
 
-          if (RDMA_SHUFFLE) {
-            val indexByteArray = Files.readAllBytes(Paths.get(indexTmp.toString()))
-            logTrace(s"RDMA sent index for ${IndexBaseName}")
-            BM.write(IndexBaseName, indexByteArray, indexByteArray.length)
-            logTrace(s"RDMA sent index for ${IndexBaseName} complete")
-
-            if (dataTmp != null && dataTmp.exists()) {
-              logTrace(s"RDMA sending data for ${DataBaseName}")
-              BM.write_file(dataTmp.toString(), DataBaseName)
-              logTrace(s"RDMA sent data for ${DataBaseName} complete")
-            }
-          }
-
-          // TODO: for the real thing, need to remove these and fix some of the
-          // above checks...
-          if (!indexTmp.renameTo(indexFile)) {
-            throw new IOException("fail to rename file " + indexTmp + " to " + indexFile)
-          }
-          if (dataTmp != null && dataTmp.exists() && !dataTmp.renameTo(dataFile)) {
-            throw new IOException("fail to rename file " + dataTmp + " to " + dataFile)
-          }
-        }
-      }
-    } finally {
-      if (indexTmp.exists() && !indexTmp.delete()) {
-        logError(s"Failed to delete temporary index file at ${indexTmp.getAbsolutePath}")
+      if (dataTmp != null && dataTmp.exists()) {
+        logTrace(s"RDMA sending data for ${DataBaseName}")
+        BM.write_file(dataTmp.toString(), DataBaseName)
+        logTrace(s"RDMA sent data for ${DataBaseName} complete")
+        dataTmp.delete()
       }
     }
   }

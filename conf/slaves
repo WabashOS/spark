@@ -17,5 +17,5 @@
 
 # A Spark Worker will be started on each of the machines listed below.
 
-f15
-f14
+f7
+f8
