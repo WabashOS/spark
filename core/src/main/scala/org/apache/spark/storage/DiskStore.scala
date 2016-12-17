@@ -31,7 +31,8 @@ import org.apache.spark.util.io.ChunkedByteBuffer
 /**
  * Stores BlockManager blocks on disk.
  */
-private[spark] class DiskStore(conf: SparkConf, diskManager: DiskBlockManager) extends Logging {
+private[spark] class DiskStore(conf: SparkConf, diskManager: DiskBlockManager)
+  extends Logging with DiskStoreLike {
 
   private val minMemoryMapBytes = conf.getSizeAsBytes("spark.storage.memoryMapThreshold", "2m")
 
@@ -44,7 +45,7 @@ private[spark] class DiskStore(conf: SparkConf, diskManager: DiskBlockManager) e
    *
    * @throws IllegalStateException if the block already exists in the disk store.
    */
-  def put(blockId: BlockId)(writeFunc: FileOutputStream => Unit): Unit = {
+  def put(blockId: BlockId)(writeFunc: java.io.OutputStream => Unit): Unit = {
     if (contains(blockId)) {
       throw new IllegalStateException(s"Block $blockId is already present in the disk store")
     }
@@ -73,14 +74,36 @@ private[spark] class DiskStore(conf: SparkConf, diskManager: DiskBlockManager) e
   }
 
   def putBytes(blockId: BlockId, bytes: ChunkedByteBuffer): Unit = {
-    put(blockId) { fileOutputStream =>
-      val channel = fileOutputStream.getChannel
+    if (contains(blockId)) {
+      throw new IllegalStateException(s"Block $blockId is already present in the disk store")
+    }
+    logDebug(s"Attempting to put block $blockId")
+    val startTime = System.currentTimeMillis
+    val file = diskManager.getFile(blockId)
+    val fileOutputStream = new FileOutputStream(file)
+    var threwException: Boolean = true
+    try {
+      val channel = fileOutputStream.getChannel()
       Utils.tryWithSafeFinally {
         bytes.writeFully(channel)
       } {
         channel.close()
       }
+      threwException = false
+    } finally {
+      try {
+        Closeables.close(fileOutputStream, threwException)
+      } finally {
+        if (threwException) {
+          remove(blockId)
+        }
+      }
     }
+    val finishTime = System.currentTimeMillis
+    logDebug("Block %s stored as %s file on disk in %d ms".format(
+      file.getName,
+      Utils.bytesToString(file.length()),
+      finishTime - startTime))
   }
 
   def getBytes(blockId: BlockId): ChunkedByteBuffer = {

@@ -1,3 +1,7 @@
+# RMEM Config
+To run anything other than stock behavior you must copy spark-defaults.conf to
+spark/conf. Modify to your needs.
+
 # Running jobs remotely
 
 1. conf/slaves

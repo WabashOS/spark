@@ -73,7 +73,7 @@ class MemoryStoreSuite
       }
     }
     val memoryStore =
-      new MemoryStore(conf, blockInfoManager, serializerManager, memManager, blockEvictionHandler)
+      new MemoryStore(conf, blockInfoManager, serializerManager, memManager, blockEvictionHandler, None)
     memManager.setMemoryStore(memoryStore)
     blockEvictionHandler.memoryStore = memoryStore
     (memoryStore, blockInfoManager)

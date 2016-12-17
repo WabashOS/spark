@@ -89,10 +89,57 @@ private[spark] class BlockManager(
     ThreadUtils.newDaemonCachedThreadPool("block-manager-future", 128))
 
   // Actual storage of where blocks are kept
-  private[spark] val memoryStore =
-    new MemoryStore(conf, blockInfoManager, serializerManager, memoryManager, this)
-  private[spark] val diskStore = new RmemStore(conf, diskBlockManager)
+  /* Should we use rmem for the diskStore, the memoryStore, or neither? (can't be both) */
+  val rmemMemStore = conf.get("spark.executor.rmemUseMemStore", "false") match {
+    case "true" => true
+    case "false" => false
+    case _ => throw new IllegalArgumentException(
+      "spark.executor.rmemUseMemStore should be \"true\" or \"false\"")
+  }
+
+  /* Should we back the "rmem" with RDMA (as opposed to local disk)? */
+  val rmemUseRDMA = conf.get("spark.executor.rmemUseRDMA", "false") match {
+    case "true" => true
+    case "false" => false
+    case _ => throw new IllegalArgumentException(
+      "spark.executor.rmemUseDisk should be \"true\" or \"false\"")
+  }
+
+  /* Should we log rmem stats? */
+  val rmemLogStats = conf.get("spark.executor.rmemLogStats", "true")  match {
+    case "true" => true
+    case "false" => false
+    case _ => throw new IllegalArgumentException(
+      "spark.executor.rmemLogStats should be \"true\" or \"false\"")
+  }
+
+  logInfo("(RMEM) Config: " +
+    "\nrmemUseMemStore?: " + rmemMemStore +
+    "\nrmemUseRDMA?: " + rmemUseRDMA +
+    "\nrmemLogStats?: " + rmemLogStats)
+
+  /* rmemStore can use either rmem or disk. The disk mode is useful for logging statistics */
+  private val rmemStore = if (rmemUseRDMA) {
+    new DiskStoreWrapper(rmemLogStats, new RmemStore(conf, diskBlockManager))
+  } else {
+    new DiskStoreWrapper(rmemLogStats, new DiskStore(conf, diskBlockManager))
+  }
+
+  private[spark] val memoryStore = if (rmemMemStore) {
+    new MemoryStore(conf, blockInfoManager, serializerManager, memoryManager, this, Some(rmemStore))
+  } else {
+    new MemoryStore(conf, blockInfoManager, serializerManager, memoryManager, this, None)
+  }
   memoryManager.setMemoryStore(memoryStore)
+
+  private[spark] val diskStore = if (rmemMemStore) {
+    /* If the memStore is using rmem, the DiskStore should be totally stock */
+    new DiskStore(conf, diskBlockManager)
+  } else {
+    /* Otherwise we'll use our custom RmemStore */
+    rmemStore
+  }
+
 
   // Note: depending on the memory manager, `maxMemory` may actually vary over time.
   // However, since we use this only for reporting and logging, what we actually want here is
@@ -1367,7 +1414,7 @@ private[spark] class BlockManager(
     rpcEnv.stop(slaveEndpoint)
     blockInfoManager.clear()
     memoryStore.clear()
-    diskStore.shutdown()
+    rmemStore.report()
     futureExecutionContext.shutdownNow()
     logInfo("BlockManager stopped")
   }
