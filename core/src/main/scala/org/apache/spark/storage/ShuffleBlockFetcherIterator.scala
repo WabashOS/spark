@@ -171,7 +171,7 @@ final class ShuffleBlockFetcherIterator(
         override def onBlockFetchSuccess(blockId: String, buf: ManagedBuffer): Unit = {
           // Only add the buffer to results queue if the iterator is not zombie,
           // i.e. cleanup() has not been called yet.
-          logTrace(s"onBlockFetchSuccess for ${blockId} hashCode is: ${buf.nioByteBuffer().hashCode()}")
+//          logTrace(s"onBlockFetchSuccess for ${blockId} hashCode is: ${buf.nioByteBuffer().hashCode()}")
           ShuffleBlockFetcherIterator.this.synchronized {
             if (!isZombie) {
               // Increment the ref count because we need to pass this to a different thread.

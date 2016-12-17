@@ -56,10 +56,10 @@ private[spark] class IndexShuffleBlockResolver(
   private val BM = new RemoteBuf.BufferManager()
 
   def getDataFile(shuffleId: Int, mapId: Int): File = {
-    val shufblockid = ShuffleDataBlockId(shuffleId, mapId, NOOP_REDUCE_ID)
-    logTrace(s"getDataFile called with ${blockManager.diskBlockManager}")
-    logTrace(s"asking for ${shufblockid.name}")
-    blockManager.diskBlockManager.getFile(shufblockid)
+//    val shufblockid = 
+//    logTrace(s"getDataFile called with ${blockManager.diskBlockManager}")
+//    logTrace(s"asking for ${shufblockid.name}")
+    blockManager.diskBlockManager.getFile(ShuffleDataBlockId(shuffleId, mapId, NOOP_REDUCE_ID))
   }
 
   private def getIndexFile(shuffleId: Int, mapId: Int): File = {
@@ -158,9 +158,9 @@ private[spark] class IndexShuffleBlockResolver(
     out2.flush()
     out2.close()
 
-    val dataFile = getDataFile(shuffleId, mapId)
-    logTrace(s"writeIndexFileAndCommit using real data file: ${dataFile}")
-    logTrace(s"writeIndexFileAndCommit temp data file is: ${dataTmp}")
+//    val dataFile = getDataFile(shuffleId, mapId)
+//    logTrace(s"writeIndexFileAndCommit using real data file: ${dataFile}")
+//    logTrace(s"writeIndexFileAndCommit temp data file is: ${dataTmp}")
 
     val DataBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data"
     val IndexBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index"
@@ -169,35 +169,35 @@ private[spark] class IndexShuffleBlockResolver(
     // the following check and rename are atomic.
     synchronized {
       // TODO: S: cheaper to just write again over RDMA vs reading to check each time?
-      logTrace(s"writeIndexFileAndCommit first successful map output write for ${dataFile}")
+//      logTrace(s"writeIndexFileAndCommit first successful map output write for ${dataFile}")
 
-      val t8 = System.nanoTime()
+//      val t8 = System.nanoTime()
       val indexByteArray = bbuf.toByteArray()
-      val t9 = System.nanoTime()
-    logTrace(s"bbuf index conversion took ${(t9 - t8)/1000} us")
+//      val t9 = System.nanoTime()
+//    logTrace(s"bbuf index conversion took ${(t9 - t8)/1000} us")
 
-      logTrace(s"RDMA sent index for ${IndexBaseName}")
-      val t0 = System.nanoTime()
+//      logTrace(s"RDMA sent index for ${IndexBaseName}")
+//      val t0 = System.nanoTime()
 
       BM.write(IndexBaseName, indexByteArray, indexByteArray.length)
-      val t1 = System.nanoTime()
+//      val t1 = System.nanoTime()
 
-      logTrace(s"RDMA sent index for ${IndexBaseName} complete")
+//      logTrace(s"RDMA sent index for ${IndexBaseName} complete")
 
       if (dataTmp != null && dataTmp.exists()) {
-        logTrace(s"RDMA sending data for ${DataBaseName}")
-        val t2 = System.nanoTime()
+//        logTrace(s"RDMA sending data for ${DataBaseName}")
+//        val t2 = System.nanoTime()
 
         BM.write_file(dataTmp.toString(), DataBaseName)
-        val t3 = System.nanoTime()
+//        val t3 = System.nanoTime()
 
-        logTrace(s"RDMA sent data for ${DataBaseName} complete")
+//        logTrace(s"RDMA sent data for ${DataBaseName} complete")
         dataTmp.delete()
-    logTrace(s"RDMA ${DataBaseName} write took ${(t3 - t2)/1000} us")
+//    logTrace(s"RDMA ${DataBaseName} write took ${(t3 - t2)/1000} us")
 
 
       }
-    logTrace(s"RDMA ${IndexBaseName} write took ${(t1 - t0)/1000} us")
+//    logTrace(s"RDMA ${IndexBaseName} write took ${(t1 - t0)/1000} us")
 
     }
   }
@@ -270,14 +270,14 @@ private[spark] class IndexShuffleBlockResolver(
 
 
   override def getBlockData(blockId: ShuffleBlockId): ManagedBuffer = {
-    logTrace(s"called getBlockData on IndexShuffleBlockResolver for ${blockId.name}")
+//    logTrace(s"called getBlockData on IndexShuffleBlockResolver for ${blockId.name}")
 
     // TODO: do we plugin RDMA read of data here?
 
     // The block is actually going to be a range of a single map output file for this map, so
     // find out the consolidated file, then the offset within that from our index
     val indexFile = getIndexFile(blockId.shuffleId, blockId.mapId)
-    logTrace(s"Filename: $indexFile")
+//    logTrace(s"Filename: $indexFile")
 
 
     val in = new DataInputStream(new FileInputStream(indexFile))
@@ -290,8 +290,8 @@ private[spark] class IndexShuffleBlockResolver(
         getDataFile(blockId.shuffleId, blockId.mapId),
         offset,
         nextOffset - offset)
-      val forPrinting = DONE.nioByteBuffer()
-      logTrace(s"getBlockData for ${blockId} hashCode is: ${forPrinting.hashCode()}")
+//      val forPrinting = DONE.nioByteBuffer()
+//      logTrace(s"getBlockData for ${blockId} hashCode is: ${forPrinting.hashCode()}")
 
       DONE
     } finally {

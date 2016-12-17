@@ -92,9 +92,9 @@ private[spark] class ShuffleMapTask(
     var writer: ShuffleWriter[Any, Any] = null
     try {
       val manager = SparkEnv.get.shuffleManager
-      logTrace(s"runTask using shuffleManager: $manager")
+//      logTrace(s"runTask using shuffleManager: $manager")
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
-      logTrace(s"runTask using shuffleManager writer: $writer")
+//      logTrace(s"runTask using shuffleManager writer: $writer")
 
       writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
       writer.stop(success = true).get

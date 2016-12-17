@@ -100,10 +100,9 @@ private[spark] class NettyBlockTransferService(
       blockIds: Array[String],
       listener: BlockFetchingListener): Unit = {
     logTrace(s"Fetch blocks from $host:$port (executor id $execId)")
-    logTrace(s"All Blocks: ${blockIds.mkString(" ")}")
+//    logTrace(s"All Blocks: ${blockIds.mkString(" ")}")
 
     // hacky - also need to change IndexShuffleBlockResolver's RDMA_SHUFFLE
-    val RDMA_SHUFFLE = true
 
     // TODO: can we just take out any block that starts with "shuffle_" for now?
     // and put it in our own list
@@ -113,21 +112,17 @@ private[spark] class NettyBlockTransferService(
     //
     // The rest of the function will run as expected for the other blocks
 
-    val other_blockIds = 
-      if (RDMA_SHUFFLE)
-        blockIds.filter(x => !(x contains "shuffle_"))
-      else
-        blockIds
+    val other_blockIds = blockIds.filter(x => !(x contains "shuffle_"))
 
-    if (RDMA_SHUFFLE) {
+
+/*    if (RDMA_SHUFFLE) {
       logTrace(s"Other Blocks: ${other_blockIds.mkString(" ")}")
     } else {
       logTrace(s"Blocks: ${other_blockIds.mkString(" ")}")
-    }
+    }*/
   
-    if (RDMA_SHUFFLE) {
       val shuffleBlocks = blockIds.filter(x => x contains "shuffle_")
-      logTrace(s"Shuffle Blocks: ${shuffleBlocks.mkString(" ")}")
+//      logTrace(s"Shuffle Blocks: ${shuffleBlocks.mkString(" ")}")
 
 //      val executorService = Executors.newFixedThreadPool(2)
 //      val executionContext = ExecutionContext.fromExecutorService(executorService)
@@ -136,7 +131,7 @@ private[spark] class NettyBlockTransferService(
       for (aShuffleBlock <- shuffleBlocks) {
         val f = Future {
 
-          val t0 = System.nanoTime()
+//          val t0 = System.nanoTime()
 
           val shuffleId = aShuffleBlock.split("_")(1)
           val blockId = aShuffleBlock.split("_")(2)
@@ -148,12 +143,12 @@ private[spark] class NettyBlockTransferService(
 
           // TODO: S: can we hardcode 1608?
           val IndexFileSize = 1608 //BM.get_read_alloc(IndexBaseName)
-          logTrace(s"RDMA got index alloc for ${baseName}.index file size as: ${IndexFileSize}")
+//          logTrace(s"RDMA got index alloc for ${baseName}.index file size as: ${IndexFileSize}")
           val indexFileRDMAIn = new Array[Byte](IndexFileSize)
-          val t2 = System.nanoTime()
+//          val t2 = System.nanoTime()
           BM.read(IndexBaseName, indexFileRDMAIn, IndexFileSize)
-          val t3 = System.nanoTime()
-          logTrace(s"RDMA got read response from server for ${baseName}.index")
+//          val t3 = System.nanoTime()
+//          logTrace(s"RDMA got read response from server for ${baseName}.index")
           val in = new DataInputStream(new ByteArrayInputStream(indexFileRDMAIn))
 
           try {
@@ -163,15 +158,15 @@ private[spark] class NettyBlockTransferService(
 
             // TODO get rid of the toInt s
             val DataFileSize = (nextOffset - offset).toInt
-            logTrace(s"For ${baseName}.data file size is: ${DataFileSize}")
+//            logTrace(s"For ${baseName}.data file size is: ${DataFileSize}")
             val dataFileRDMAIn = new Array[Byte](DataFileSize)
-            val t4 = System.nanoTime()
+//            val t4 = System.nanoTime()
           
             BM.read_offset(DataBaseName, dataFileRDMAIn, DataFileSize, offset.toInt)
-            val t5 = System.nanoTime()
-           logTrace(s"Raw RDMA read for ${aShuffleBlock} data took ${(t5 - t4)/1000000} ms")
+//            val t5 = System.nanoTime()
+//           logTrace(s"Raw RDMA read for ${aShuffleBlock} data took ${(t5 - t4)/1000000} ms")
 
-            logTrace(s"RDMA got read response from server for ${baseName}.data")
+//            logTrace(s"RDMA got read response from server for ${baseName}.data")
             val DONE = new NioManagedBuffer(ByteBuffer.wrap(dataFileRDMAIn))
 
             listener.onBlockFetchSuccess(aShuffleBlock, DONE)
@@ -179,14 +174,13 @@ private[spark] class NettyBlockTransferService(
             in.close()
           }
 
-          val t1 = System.nanoTime() 
-          logTrace(s"Request for ${aShuffleBlock} took ${(t1 - t0)/1000000} ms")
-          logTrace(s"Raw RDMA read for ${aShuffleBlock} index took ${(t3 - t2)/1000000} ms")
+//          val t1 = System.nanoTime() 
+//          logTrace(s"Request for ${aShuffleBlock} took ${(t1 - t0)/1000000} ms")
+//          logTrace(s"Raw RDMA read for ${aShuffleBlock} index took ${(t3 - t2)/1000000} ms")
 
         } /*(executionContext)*/
       }
       /* end code adapted from getBlockData */
-    }
 
     // TODO do we need to do anything special here if there are no non-shuffle
     // blocks?
