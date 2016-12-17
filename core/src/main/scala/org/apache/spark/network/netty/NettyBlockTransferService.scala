@@ -24,6 +24,9 @@ import com.google.common.io.ByteStreams
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{Future, Promise}
+import scala.concurrent.ExecutionContext.Implicits.global
+//import java.util.concurrent.Executors
+//import concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
 import org.apache.spark.{SecurityManager, SparkConf}
@@ -126,42 +129,61 @@ private[spark] class NettyBlockTransferService(
       val shuffleBlocks = blockIds.filter(x => x contains "shuffle_")
       logTrace(s"Shuffle Blocks: ${shuffleBlocks.mkString(" ")}")
 
+//      val executorService = Executors.newFixedThreadPool(2)
+//      val executionContext = ExecutionContext.fromExecutorService(executorService)
+
       /* code adapted from IndexShuffleBlockResolver getBlockData */
       for (aShuffleBlock <- shuffleBlocks) {
-        val shuffleId = aShuffleBlock.split("_")(1)
-        val blockId = aShuffleBlock.split("_")(2)
-        val reduceId = aShuffleBlock.split("_")(3).toInt
+        val f = Future {
 
-        val baseName = s"shuffle_${shuffleId}_${blockId}"
-        val IndexBaseName = baseName + ".index"
-        val DataBaseName = baseName + ".data"
+          val t0 = System.nanoTime()
 
-        // TODO: S: can we hardcode 1608?
-        val IndexFileSize = BM.get_read_alloc(IndexBaseName)
-        logTrace(s"RDMA got index alloc for ${baseName}.index file size as: ${IndexFileSize}")
-        val indexFileRDMAIn = new Array[Byte](IndexFileSize)
-        BM.read(IndexBaseName, indexFileRDMAIn, IndexFileSize)
-        logTrace(s"RDMA got read response from server for ${baseName}.index")
-        val in = new DataInputStream(new ByteArrayInputStream(indexFileRDMAIn))
+          val shuffleId = aShuffleBlock.split("_")(1)
+          val blockId = aShuffleBlock.split("_")(2)
+          val reduceId = aShuffleBlock.split("_")(3).toInt
 
-        try {
-          ByteStreams.skipFully(in, reduceId * 8)
-          val offset = in.readLong()
-          val nextOffset = in.readLong()
+          val baseName = s"shuffle_${shuffleId}_${blockId}"
+          val IndexBaseName = baseName + ".index"
+          val DataBaseName = baseName + ".data"
 
-          // TODO get rid of the toInt s
-          val DataFileSize = (nextOffset - offset).toInt
-          logTrace(s"For ${baseName}.data file size is: ${DataFileSize}")
-          val dataFileRDMAIn = new Array[Byte](DataFileSize)
-         
-          BM.read_offset(DataBaseName, dataFileRDMAIn, DataFileSize, offset.toInt)
-          logTrace(s"RDMA got read response from server for ${baseName}.data")
-          val DONE = new NioManagedBuffer(ByteBuffer.wrap(dataFileRDMAIn))
+          // TODO: S: can we hardcode 1608?
+          val IndexFileSize = 1608 //BM.get_read_alloc(IndexBaseName)
+          logTrace(s"RDMA got index alloc for ${baseName}.index file size as: ${IndexFileSize}")
+          val indexFileRDMAIn = new Array[Byte](IndexFileSize)
+          val t2 = System.nanoTime()
+          BM.read(IndexBaseName, indexFileRDMAIn, IndexFileSize)
+          val t3 = System.nanoTime()
+          logTrace(s"RDMA got read response from server for ${baseName}.index")
+          val in = new DataInputStream(new ByteArrayInputStream(indexFileRDMAIn))
 
-          listener.onBlockFetchSuccess(aShuffleBlock, DONE)
-        } finally {
-          in.close()
-        }
+          try {
+            ByteStreams.skipFully(in, reduceId * 8)
+            val offset = in.readLong()
+            val nextOffset = in.readLong()
+
+            // TODO get rid of the toInt s
+            val DataFileSize = (nextOffset - offset).toInt
+            logTrace(s"For ${baseName}.data file size is: ${DataFileSize}")
+            val dataFileRDMAIn = new Array[Byte](DataFileSize)
+            val t4 = System.nanoTime()
+          
+            BM.read_offset(DataBaseName, dataFileRDMAIn, DataFileSize, offset.toInt)
+            val t5 = System.nanoTime()
+           logTrace(s"Raw RDMA read for ${aShuffleBlock} data took ${(t5 - t4)/1000000} ms")
+
+            logTrace(s"RDMA got read response from server for ${baseName}.data")
+            val DONE = new NioManagedBuffer(ByteBuffer.wrap(dataFileRDMAIn))
+
+            listener.onBlockFetchSuccess(aShuffleBlock, DONE)
+          } finally {
+            in.close()
+          }
+
+          val t1 = System.nanoTime() 
+          logTrace(s"Request for ${aShuffleBlock} took ${(t1 - t0)/1000000} ms")
+          logTrace(s"Raw RDMA read for ${aShuffleBlock} index took ${(t3 - t2)/1000000} ms")
+
+        } /*(executionContext)*/
       }
       /* end code adapted from getBlockData */
     }
@@ -176,6 +198,9 @@ private[spark] class NettyBlockTransferService(
             new OneForOneBlockFetcher(client, appId, execId, other_blockIds.toArray, listener).start()
           }
         }
+
+        //create block fetch starter
+
 
         val maxRetries = transportConf.maxIORetries()
         if (maxRetries > 0) {

@@ -170,19 +170,104 @@ private[spark] class IndexShuffleBlockResolver(
     synchronized {
       // TODO: S: cheaper to just write again over RDMA vs reading to check each time?
       logTrace(s"writeIndexFileAndCommit first successful map output write for ${dataFile}")
+
+      val t8 = System.nanoTime()
+      val indexByteArray = bbuf.toByteArray()
+      val t9 = System.nanoTime()
+    logTrace(s"bbuf index conversion took ${(t9 - t8)/1000} us")
+
+      logTrace(s"RDMA sent index for ${IndexBaseName}")
+      val t0 = System.nanoTime()
+
+      BM.write(IndexBaseName, indexByteArray, indexByteArray.length)
+      val t1 = System.nanoTime()
+
+      logTrace(s"RDMA sent index for ${IndexBaseName} complete")
+
+      if (dataTmp != null && dataTmp.exists()) {
+        logTrace(s"RDMA sending data for ${DataBaseName}")
+        val t2 = System.nanoTime()
+
+        BM.write_file(dataTmp.toString(), DataBaseName)
+        val t3 = System.nanoTime()
+
+        logTrace(s"RDMA sent data for ${DataBaseName} complete")
+        dataTmp.delete()
+    logTrace(s"RDMA ${DataBaseName} write took ${(t3 - t2)/1000} us")
+
+
+      }
+    logTrace(s"RDMA ${IndexBaseName} write took ${(t1 - t0)/1000} us")
+
+    }
+  }
+
+  /**
+   * Write an index file with the offsets of each block, plus a final offset at the end for the
+   * end of the output file. This will be used by getBlockData to figure out where each block
+   * begins and ends.
+   *
+   * It will commit the data and index file as an atomic operation, use the existing ones, or
+   * replace them with new ones.
+   *
+   * Note: the `lengths` will be updated to match the existing index file if use the existing ones.
+   * */
+/*  def writeIndexFileAndCommit2(
+      shuffleId: Int,
+      mapId: Int,
+      lengths: Array[Long],
+      dataTmp: ByteArrayOutputStream): Unit = {
+
+    val bbuf = new ByteArrayOutputStream()
+    val out2 = new DataOutputStream(bbuf)
+
+    var offset = 0L
+    out2.writeLong(offset)
+    for (length <- lengths) {
+      offset += length
+      out2.writeLong(offset)
+    }
+    out2.flush()
+    out2.close()
+
+    val dataFile = getDataFile(shuffleId, mapId)
+    logTrace(s"writeIndexFileAndCommit using real data file: ${dataFile}")
+//    logTrace(s"writeIndexFileAndCommit temp data file is: ${dataTmp}")
+
+    val DataBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data"
+    val IndexBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index"
+
+    // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
+    // the following check and rename are atomic.
+    synchronized {
+      // TODO: S: cheaper to just write again over RDMA vs reading to check each time?
+      logTrace(s"writeIndexFileAndCommit first successful map output write for ${dataFile}")
       val indexByteArray = bbuf.toByteArray()
       logTrace(s"RDMA sent index for ${IndexBaseName}")
       BM.write(IndexBaseName, indexByteArray, indexByteArray.length)
       logTrace(s"RDMA sent index for ${IndexBaseName} complete")
 
-      if (dataTmp != null && dataTmp.exists()) {
+      if (dataTmp != null ) {
         logTrace(s"RDMA sending data for ${DataBaseName}")
-        BM.write_file(dataTmp.toString(), DataBaseName)
+        val dat = dataTmp.toByteArray()
+        BM.write(DataBaseName, dat, dat.length)
+//        BM.write_file(dataTmp.toString(), DataBaseName)
         logTrace(s"RDMA sent data for ${DataBaseName} complete")
-        dataTmp.delete()
+//        dataTmp.delete()
+//
+
       }
+
+
     }
+
   }
+
+
+*/
+
+
+
 
   override def getBlockData(blockId: ShuffleBlockId): ManagedBuffer = {
     logTrace(s"called getBlockData on IndexShuffleBlockResolver for ${blockId.name}")
