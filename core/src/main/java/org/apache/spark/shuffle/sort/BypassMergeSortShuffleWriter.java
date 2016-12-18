@@ -20,6 +20,7 @@ package org.apache.spark.shuffle.sort;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import javax.annotation.Nullable;
 
@@ -122,12 +123,12 @@ final class BypassMergeSortShuffleWriter<K, V> extends ShuffleWriter<K, V> {
 
   @Override
   public void write(Iterator<Product2<K, V>> records) throws IOException {
-//    logger.trace("BypassMergeSortShuffleWriter write called\n");
-//    String trace = "";
-//    for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
-//        trace += ste.toString() + "\n";
-//    }
-//    logger.trace(trace);
+/*    logger.trace("BypassMergeSortShuffleWriter write called\n");
+    String trace = "";
+    for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+        trace += ste.toString() + "\n";
+    }
+    logger.trace(trace);*/
 
     assert (partitionWriters == null);
     if (!records.hasNext()) {
@@ -168,19 +169,21 @@ final class BypassMergeSortShuffleWriter<K, V> extends ShuffleWriter<K, V> {
       writer.close();
     }
 
-    File output = shuffleBlockResolver.getDataFile(shuffleId, mapId);
+//    File output = shuffleBlockResolver.getDataFile(shuffleId, mapId);
 //    logger.trace("file toString: " + output.toString());
 
     // S: this just opens a temp file in the same directory as shuffle output
-    File tmp = Utils.tempFileWith(output);
+//    File tmp = Utils.tempFileWith(output);
 //    logger.trace("tmp file name: " + tmp.toString());
     try {
-      partitionLengths = writePartitionedFile(tmp);
-      shuffleBlockResolver.writeIndexFileAndCommit(shuffleId, mapId, partitionLengths, tmp);
+      ByteArrayOutputStream bbuf = new ByteArrayOutputStream(10000000);
+
+      partitionLengths = writePartitionedFile(bbuf);
+      shuffleBlockResolver.writeIndexFileAndCommit2(shuffleId, mapId, partitionLengths, bbuf);
     } finally {
-      if (tmp.exists() && !tmp.delete()) {
+/*      if (tmp.exists() && !tmp.delete()) {
         logger.error("Error while deleting temp file {}", tmp.getAbsolutePath());
-      }
+      }*/
     }
     mapStatus = MapStatus$.MODULE$.apply(blockManager.shuffleServerId(), partitionLengths);
   }
@@ -195,7 +198,7 @@ final class BypassMergeSortShuffleWriter<K, V> extends ShuffleWriter<K, V> {
    *
    * @return array of lengths, in bytes, of each partition of the file (used by map output tracker).
    */
-  private long[] writePartitionedFile(File outputFile) throws IOException {
+  private long[] writePartitionedFile(ByteArrayOutputStream bbuf) throws IOException {
     // Track location of the partition starts in the output file
     final long[] lengths = new long[numPartitions];
     if (partitionWriters == null) {
@@ -203,7 +206,7 @@ final class BypassMergeSortShuffleWriter<K, V> extends ShuffleWriter<K, V> {
       return lengths;
     }
 
-    final FileOutputStream out = new FileOutputStream(outputFile, true);
+    final ByteArrayOutputStream out = bbuf; //new FileOutputStream(outputFile, true);
     final long writeStartTime = System.nanoTime();
     boolean threwException = true;
     try {

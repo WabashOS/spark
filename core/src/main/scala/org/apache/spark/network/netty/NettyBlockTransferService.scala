@@ -142,17 +142,18 @@ private[spark] class NettyBlockTransferService(
           val DataBaseName = baseName + ".data"
 
           // TODO: S: can we hardcode 1608?
-          val IndexFileSize = 1608 //BM.get_read_alloc(IndexBaseName)
+          val IndexFileSize = 16 //BM.get_read_alloc(IndexBaseName)
 //          logTrace(s"RDMA got index alloc for ${baseName}.index file size as: ${IndexFileSize}")
           val indexFileRDMAIn = new Array[Byte](IndexFileSize)
 //          val t2 = System.nanoTime()
-          BM.read(IndexBaseName, indexFileRDMAIn, IndexFileSize)
+          BM.read_offset(IndexBaseName, indexFileRDMAIn, IndexFileSize, reduceId*8)
+//          BM.read(IndexBaseName, indexFileRDMAIn, IndexFileSize)
 //          val t3 = System.nanoTime()
 //          logTrace(s"RDMA got read response from server for ${baseName}.index")
           val in = new DataInputStream(new ByteArrayInputStream(indexFileRDMAIn))
 
           try {
-            ByteStreams.skipFully(in, reduceId * 8)
+//           ByteStreams.skipFully(in, reduceId * 8)
             val offset = in.readLong()
             val nextOffset = in.readLong()
 
