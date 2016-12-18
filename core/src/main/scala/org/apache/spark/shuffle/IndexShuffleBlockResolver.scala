@@ -53,7 +53,8 @@ private[spark] class IndexShuffleBlockResolver(
   private lazy val blockManager = Option(_blockManager).getOrElse(SparkEnv.get.blockManager)
 
   private val transportConf = SparkTransportConf.fromSparkConf(conf, "shuffle")
-  private val BM = new RemoteBuf.BufferManager()
+  private val BM1 = new RemoteBuf.BufferManager(1)
+//  private val BM2 = new RemoteBuf.BufferManager(2)
 
   def getDataFile(shuffleId: Int, mapId: Int): File = {
 //    val shufblockid = 
@@ -165,6 +166,8 @@ private[spark] class IndexShuffleBlockResolver(
     val DataBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data"
     val IndexBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index"
 
+    val BM = BM1 //if ((mapId % 2) == 0) BM1 else BM2
+
     // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
     // the following check and rename are atomic.
     synchronized {
@@ -227,6 +230,8 @@ private[spark] class IndexShuffleBlockResolver(
 
     val DataBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".data"
     val IndexBaseName = "shuffle_" + shuffleId.toString() + "_" + mapId.toString() + ".index"
+
+    val BM = BM1 //if ((mapId % 2) == 0) BM1 else BM2
 
     // There is only one IndexShuffleBlockResolver per executor, this synchronization make sure
     // the following check and rename are atomic.

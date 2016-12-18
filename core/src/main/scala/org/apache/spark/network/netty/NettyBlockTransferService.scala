@@ -60,7 +60,8 @@ private[spark] class NettyBlockTransferService(
   private val serializer = new JavaSerializer(conf)
   private val authEnabled = securityManager.isAuthenticationEnabled()
   private val transportConf = SparkTransportConf.fromSparkConf(conf, "shuffle", numCores)
-  private val BM = new RemoteBuf.BufferManager()
+  private val BM1 = new RemoteBuf.BufferManager(1)
+//  private val BM2 = new RemoteBuf.BufferManager(2)
 
   private[this] var transportContext: TransportContext = _
   private[this] var server: TransportServer = _
@@ -134,8 +135,11 @@ private[spark] class NettyBlockTransferService(
 //          val t0 = System.nanoTime()
 
           val shuffleId = aShuffleBlock.split("_")(1)
-          val blockId = aShuffleBlock.split("_")(2)
+          val blockId = aShuffleBlock.split("_")(2).toInt
           val reduceId = aShuffleBlock.split("_")(3).toInt
+
+          val BM = BM1 //if ((blockId % 2) == 0) BM1 else BM2
+
 
           val baseName = s"shuffle_${shuffleId}_${blockId}"
           val IndexBaseName = baseName + ".index"
