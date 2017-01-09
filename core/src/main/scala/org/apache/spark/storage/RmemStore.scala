@@ -168,4 +168,8 @@ private[spark] class RmemStore(
     logTrace(s"RMEM contains($blockId)")
     BM.bufferExists(blockId.name)
   }
+
+  def reportStats(): String = {
+    BM.reportStats();
+  }
 }

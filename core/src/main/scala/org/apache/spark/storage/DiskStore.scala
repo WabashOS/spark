@@ -147,4 +147,8 @@ private[spark] class DiskStore(conf: SparkConf, diskManager: DiskBlockManager)
     val file = diskManager.getFile(blockId.name)
     file.exists()
   }
+
+  def reportStats(): String = {
+    ""
+  }
 }

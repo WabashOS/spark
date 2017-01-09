@@ -1,37 +1,259 @@
 org.apache.spark.storage.BlockManagerMasterEndpoint:   Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
 org.apache.spark.storage.BlockManagerMasterEndpoint:   BlockManagerMasterEndpoint up
-org.apache.spark.storage.DiskBlockManager:   Created local directory at /tmp/blockmgr-4dfe2de9-37c1-47ad-8ba0-792d4c2950ba
-org.apache.spark.storage.memory.MemoryStore:   MemoryStore started with capacity 388.2 MB
+org.apache.spark.storage.DiskBlockManager:   Created local directory at /tmp/blockmgr-5a9c5205-151b-4d3b-8449-7a02e0bd28bf
+org.apache.spark.storage.BlockManager:   (RMEM) Config: 
+rmemUseMemStore?: false
+rmemUseRDMA?: true
+rmemLogStats?: true
+org.apache.spark.storage.RmemStore:   (RMEM) Connecting to Server: f15:12345
+org.apache.spark.storage.memory.MemoryStore:   MemoryStore started with capacity 978.9 MB
 org.apache.spark.storage.BlockManager:   Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
-org.apache.spark.storage.BlockManagerMaster:   Registering BlockManager BlockManagerId(driver, 128.32.35.220, 39987, None)
-org.apache.spark.storage.BlockManagerMasterEndpoint:   Registering block manager 128.32.35.220:39987 with 388.2 MB RAM, BlockManagerId(driver, 128.32.35.220, 39987, None)
-org.apache.spark.storage.BlockManagerMaster:   Registered BlockManager BlockManagerId(driver, 128.32.35.220, 39987, None)
-org.apache.spark.storage.BlockManager:   Initialized BlockManager: BlockManagerId(driver, 128.32.35.220, 39987, None)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_0 stored as values in memory (estimated size 127.1 KB, free 388.1 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_0_piece0 stored as bytes in memory (estimated size 14.3 KB, free 388.1 MB)
-org.apache.spark.storage.BlockManagerInfo:   Added broadcast_0_piece0 in memory on 128.32.35.220:39987 (size: 14.3 KB, free: 388.2 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_1 stored as values in memory (estimated size 3.3 KB, free 388.1 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_1_piece0 stored as bytes in memory (estimated size 1971.0 B, free 388.1 MB)
-org.apache.spark.storage.BlockManagerInfo:   Added broadcast_1_piece0 in memory on 128.32.35.220:39987 (size: 1971.0 B, free: 388.2 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_0 stored as values in memory (estimated size 7.0 KB, free 388.0 MB)
-org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_0 in memory on 128.32.35.220:39987 (size: 7.0 KB, free: 388.2 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_1 stored as values in memory (estimated size 6.6 KB, free 388.0 MB)
-org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_1 in memory on 128.32.35.220:39987 (size: 6.6 KB, free: 388.2 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_2 stored as values in memory (estimated size 127.2 KB, free 387.9 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_2_piece0 stored as bytes in memory (estimated size 14.3 KB, free 387.9 MB)
-org.apache.spark.storage.BlockManagerInfo:   Added broadcast_2_piece0 in memory on 128.32.35.220:39987 (size: 14.3 KB, free: 388.2 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_3 stored as values in memory (estimated size 3.3 KB, free 387.9 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_3_piece0 stored as bytes in memory (estimated size 1965.0 B, free 387.9 MB)
-org.apache.spark.storage.BlockManagerInfo:   Added broadcast_3_piece0 in memory on 128.32.35.220:39987 (size: 1965.0 B, free: 388.2 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block rdd_4_0 stored as values in memory (estimated size 6.9 KB, free 387.9 MB)
-org.apache.spark.storage.BlockManagerInfo:   Added rdd_4_0 in memory on 128.32.35.220:39987 (size: 6.9 KB, free: 388.1 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block rdd_4_1 stored as values in memory (estimated size 6.5 KB, free 387.9 MB)
-org.apache.spark.storage.BlockManagerInfo:   Added rdd_4_1 in memory on 128.32.35.220:39987 (size: 6.5 KB, free: 388.1 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_4 stored as values in memory (estimated size 3.3 KB, free 387.9 MB)
-org.apache.spark.storage.memory.MemoryStore:   Block broadcast_4_piece0 stored as bytes in memory (estimated size 1973.0 B, free 387.9 MB)
-org.apache.spark.storage.BlockManagerInfo:   Added broadcast_4_piece0 in memory on 128.32.35.220:39987 (size: 1973.0 B, free: 388.1 MB)
+org.apache.spark.storage.BlockManagerMaster:   Registering BlockManager BlockManagerId(driver, 10.10.49.98, 37997, None)
+org.apache.spark.storage.BlockManagerMasterEndpoint:   Registering block manager 10.10.49.98:37997 with 978.9 MB RAM, BlockManagerId(driver, 10.10.49.98, 37997, None)
+org.apache.spark.storage.BlockManagerMaster:   Registered BlockManager BlockManagerId(driver, 10.10.49.98, 37997, None)
+org.apache.spark.storage.BlockManager:   Initialized BlockManager: BlockManagerId(driver, 10.10.49.98, 37997, None)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_0 stored as values in memory (estimated size 225.2 KB, free 978.7 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_0_piece0 stored as bytes in memory (estimated size 20.0 KB, free 978.7 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_0_piece0 in memory on 10.10.49.98:37997 (size: 20.0 KB, free: 978.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_1 stored as values in memory (estimated size 3.3 KB, free 978.7 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_1_piece0 stored as bytes in memory (estimated size 1995.0 B, free 978.7 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_1_piece0 in memory on 10.10.49.98:37997 (size: 1995.0 B, free: 978.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_3
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_3 in memory! (computed 249.5 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 250.4 KB (blocks) + 915.3 MB (scratch space shared across 4 tasks(s)) = 915.5 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Persisting block rdd_1_3 to disk instead.
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_2
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_2 in memory! (computed 255.0 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 250.4 KB (blocks) + 915.3 MB (scratch space shared across 4 tasks(s)) = 915.5 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Persisting block rdd_1_2 to disk instead.
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_1
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_1 in memory! (computed 219.5 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 250.4 KB (blocks) + 915.3 MB (scratch space shared across 4 tasks(s)) = 915.5 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Persisting block rdd_1_1 to disk instead.
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_0
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_0 in memory! (computed 231.1 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 250.4 KB (blocks) + 915.3 MB (scratch space shared across 4 tasks(s)) = 915.5 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Persisting block rdd_1_0 to disk instead.
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_0 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_2 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_3 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_1 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_3 stored as values in memory (estimated size 397.0 MB, free 581.6 MB)
+org.apache.spark.storage.memory.MemoryStore:   3 blocks selected for dropping (397.0 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block broadcast_0_piece0 from memory
+org.apache.spark.storage.BlockManager:   Writing block broadcast_0_piece0 to disk
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_0_piece0 on disk on 10.10.49.98:37997 (size: 20.0 KB)
+org.apache.spark.storage.BlockManager:   Dropping block broadcast_1_piece0 from memory
+org.apache.spark.storage.BlockManager:   Writing block broadcast_1_piece0 to disk
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_1_piece0 on disk on 10.10.49.98:37997 (size: 1995.0 B)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_3 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_3 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 3 blocks, free memory is 978.7 MB
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_1 stored as values in memory (estimated size 412.8 MB, free 565.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_4
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_4 in memory! (computed 425.6 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 413.0 MB (blocks) + 413.6 MB (scratch space shared across 1 tasks(s)) = 826.6 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Persisting block rdd_1_4 to disk instead.
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (412.8 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_1 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_1 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 978.7 MB
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_4 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_0
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_0 in memory! (computed 337.0 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 228.5 KB (blocks) + 857.8 MB (scratch space shared across 2 tasks(s)) = 858.0 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_5 stored as values in memory (estimated size 418.5 MB, free 560.2 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_5 in memory on 10.10.49.98:37997 (size: 418.5 MB, free: 560.4 MB)
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (418.5 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_5 from memory
+org.apache.spark.storage.BlockManager:   Writing block rdd_1_5 to disk
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_5 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 978.7 MB
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_7
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_7 in memory! (computed 345.6 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 228.5 KB (blocks) + 936.6 MB (scratch space shared across 3 tasks(s)) = 936.9 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Persisting block rdd_1_7 to disk instead.
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_6
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_6 in memory! (computed 341.5 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 228.5 KB (blocks) + 936.6 MB (scratch space shared across 3 tasks(s)) = 936.9 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Persisting block rdd_1_6 to disk instead.
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_2
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_2 in memory! (computed 264.0 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 228.5 KB (blocks) + 936.6 MB (scratch space shared across 3 tasks(s)) = 936.9 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_7 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_6 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_8
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_8 in memory! (computed 368.3 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 228.5 KB (blocks) + 928.6 MB (scratch space shared across 3 tasks(s)) = 928.8 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Persisting block rdd_1_8 to disk instead.
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_6
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_6 in memory! (computed 113.1 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 228.5 KB (blocks) + 963.6 MB (scratch space shared across 3 tasks(s)) = 963.8 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_7 stored as values in memory (estimated size 420.7 MB, free 558.0 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_8 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (420.7 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_7 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_7 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 978.7 MB
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_4
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_4 in memory! (computed 263.2 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 228.5 KB (blocks) + 930.0 MB (scratch space shared across 4 tasks(s)) = 930.2 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_8
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_8 in memory! (computed 103.3 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 228.5 KB (blocks) + 964.1 MB (scratch space shared across 4 tasks(s)) = 964.3 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_9 stored as values in memory (estimated size 438.3 MB, free 540.4 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_9 in memory on 10.10.49.98:37997 (size: 438.3 MB, free: 540.6 MB)
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_10
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_10 in memory! (computed 380.6 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 438.5 MB (blocks) + 385.8 MB (scratch space shared across 2 tasks(s)) = 824.3 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Persisting block rdd_1_10 to disk instead.
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_11 stored as values in memory (estimated size 68.1 MB, free 472.3 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_11 in memory on 10.10.49.98:37997 (size: 68.1 MB, free: 472.5 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_10 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (438.3 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_9 from memory
+org.apache.spark.storage.BlockManager:   Writing block rdd_1_9 to disk
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_9 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 910.5 MB
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_10 stored as values in memory (estimated size 384.3 MB, free 526.3 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_2 stored as values in memory (estimated size 225.3 KB, free 526.1 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_2_piece0 stored as bytes in memory (estimated size 20.0 KB, free 526.0 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_2_piece0 in memory on 10.10.49.98:37997 (size: 20.0 KB, free: 910.7 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_3 stored as values in memory (estimated size 3.3 KB, free 526.0 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_3_piece0 stored as bytes in memory (estimated size 1989.0 B, free 526.0 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_3_piece0 in memory on 10.10.49.98:37997 (size: 1989.0 B, free: 910.7 MB)
+org.apache.spark.storage.RmemStore:   Getting size of non-existent block broadcast_1
+org.apache.spark.storage.RmemStore:   Removing non-existent buffer broadcast_1
+org.apache.spark.storage.BlockManagerInfo:   Removed broadcast_1_piece0 on 10.10.49.98:37997 on disk (size: 1995.0 B)
+org.apache.spark.storage.memory.MemoryStore:   2 blocks selected for dropping (68.4 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block broadcast_0 from memory
+org.apache.spark.storage.BlockManager:   Writing block broadcast_0 to disk
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_11 from memory
+org.apache.spark.storage.BlockManager:   Writing block rdd_1_11 to disk
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_11 on disk on 10.10.49.98:37997 (size: 20.1 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 2 blocks, free memory is 594.4 MB
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (384.3 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_10 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_10 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 978.7 MB
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_4_2
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_4_1
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_4_2 in memory! (computed 160.6 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_4_1 in memory! (computed 259.2 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 250.5 KB (blocks) + 959.0 MB (scratch space shared across 4 tasks(s)) = 959.2 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 250.5 KB (blocks) + 959.0 MB (scratch space shared across 4 tasks(s)) = 959.2 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.RmemStore:   Getting size of non-existent block rdd_4_2
+org.apache.spark.storage.RmemStore:   Getting size of non-existent block rdd_4_1
+org.apache.spark.storage.RmemStore:   Removing non-existent buffer rdd_4_2
+org.apache.spark.storage.RmemStore:   Removing non-existent buffer rdd_4_1
+org.apache.spark.storage.BlockManager:   Block rdd_4_2 could not be removed as it was not found on disk or in memory
+org.apache.spark.storage.BlockManager:   Block rdd_4_1 could not be removed as it was not found on disk or in memory
+org.apache.spark.storage.BlockManager:   Putting block rdd_4_1 failed
+org.apache.spark.storage.BlockManager:   Putting block rdd_4_2 failed
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_4_3 stored as values in memory (estimated size 416.9 MB, free 561.8 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_4_3 in memory on 10.10.49.98:37997 (size: 416.9 MB, free: 562.0 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_4_0 stored as values in memory (estimated size 416.9 MB, free 144.9 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_4_0 in memory on 10.10.49.98:37997 (size: 416.9 MB, free: 145.1 MB)
+org.apache.spark.storage.memory.MemoryStore:   3 blocks selected for dropping (416.9 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block broadcast_2_piece0 from memory
+org.apache.spark.storage.BlockManager:   Writing block broadcast_2_piece0 to disk
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_2_piece0 on disk on 10.10.49.98:37997 (size: 20.0 KB)
+org.apache.spark.storage.BlockManager:   Dropping block broadcast_3_piece0 from memory
+org.apache.spark.storage.BlockManager:   Writing block broadcast_3_piece0 to disk
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_3_piece0 on disk on 10.10.49.98:37997 (size: 1989.0 B)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_4_3 from memory
+org.apache.spark.storage.BlockManagerInfo:   Removed rdd_4_3 on 10.10.49.98:37997 in memory (size: 416.9 MB, free: 562.0 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 3 blocks, free memory is 561.8 MB
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_4_6 stored as values in memory (estimated size 82.6 MB, free 479.2 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_4_6 in memory on 10.10.49.98:37997 (size: 82.6 MB, free: 479.5 MB)
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (416.9 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_4_0 from memory
+org.apache.spark.storage.BlockManagerInfo:   Removed rdd_4_0 on 10.10.49.98:37997 in memory (size: 416.9 MB, free: 896.3 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 896.1 MB
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (82.6 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_4_6 from memory
+org.apache.spark.storage.BlockManagerInfo:   Removed rdd_4_6 on 10.10.49.98:37997 in memory (size: 82.6 MB, free: 978.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 978.7 MB
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_4_5
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_4_5 in memory! (computed 354.5 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 228.6 KB (blocks) + 898.8 MB (scratch space shared across 2 tasks(s)) = 899.0 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.RmemStore:   Getting size of non-existent block rdd_4_5
+org.apache.spark.storage.RmemStore:   Removing non-existent buffer rdd_4_5
+org.apache.spark.storage.BlockManager:   Block rdd_4_5 could not be removed as it was not found on disk or in memory
+org.apache.spark.storage.BlockManager:   Putting block rdd_4_5 failed
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_4_4 stored as values in memory (estimated size 406.3 MB, free 572.3 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_4_4 in memory on 10.10.49.98:37997 (size: 406.3 MB, free: 572.6 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_4 stored as values in memory (estimated size 3.3 KB, free 572.3 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block broadcast_4_piece0 stored as bytes in memory (estimated size 1997.0 B, free 572.3 MB)
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_4_piece0 in memory on 10.10.49.98:37997 (size: 1997.0 B, free: 572.6 MB)
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_0 stored as values in memory (estimated size 438.0 MB, free 134.4 MB)
 org.apache.spark.storage.BlockManager:   Found block rdd_1_0 locally
+org.apache.spark.storage.memory.MemoryStore:   3 blocks selected for dropping (406.6 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block broadcast_3 from memory
+org.apache.spark.storage.BlockManager:   Writing block broadcast_3 to disk
+org.apache.spark.storage.BlockManager:   Dropping block broadcast_2 from memory
+org.apache.spark.storage.BlockManager:   Writing block broadcast_2 to disk
+org.apache.spark.storage.BlockManager:   Dropping block rdd_4_4 from memory
+org.apache.spark.storage.BlockManagerInfo:   Removed rdd_4_4 on 10.10.49.98:37997 in memory (size: 406.3 MB, free: 978.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 3 blocks, free memory is 540.9 MB
+org.apache.spark.storage.memory.MemoryStore:   2 blocks selected for dropping (438.0 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block broadcast_4_piece0 from memory
+org.apache.spark.storage.BlockManager:   Writing block broadcast_4_piece0 to disk
+org.apache.spark.storage.BlockManagerInfo:   Added broadcast_4_piece0 on disk on 10.10.49.98:37997 (size: 1997.0 B)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_0 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_0 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 2 blocks, free memory is 978.9 MB
+org.apache.spark.storage.BlockManagerInfo:   Removed broadcast_3_piece0 on 10.10.49.98:37997 on disk (size: 1989.0 B)
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_4 stored as values in memory (estimated size 381.3 MB, free 597.6 MB)
+org.apache.spark.storage.BlockManager:   Found block rdd_1_4 locally
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (381.3 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_4 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_4 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 978.9 MB
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_2
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_2 in memory! (computed 396.0 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 3.3 KB (blocks) + 821.5 MB (scratch space shared across 3 tasks(s)) = 821.5 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Found block rdd_1_2 locally
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_1
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_1 in memory! (computed 334.1 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 3.3 KB (blocks) + 867.2 MB (scratch space shared across 3 tasks(s)) = 867.2 MB. Storage limit = 978.9 MB.
 org.apache.spark.storage.BlockManager:   Found block rdd_1_1 locally
+org.apache.spark.storage.memory.MemoryStore:   Will not store rdd_1_5
+org.apache.spark.storage.memory.MemoryStore:   Not enough space to cache rdd_1_5 in memory! (computed 215.7 MB so far)
+org.apache.spark.storage.memory.MemoryStore:   Memory use = 3.3 KB (blocks) + 935.8 MB (scratch space shared across 3 tasks(s)) = 935.8 MB. Storage limit = 978.9 MB.
+org.apache.spark.storage.BlockManager:   Found block rdd_1_5 locally
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_7 stored as values in memory (estimated size 420.7 MB, free 558.2 MB)
+org.apache.spark.storage.BlockManager:   Found block rdd_1_7 locally
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_8 stored as values in memory (estimated size 401.1 MB, free 157.1 MB)
+org.apache.spark.storage.BlockManager:   Found block rdd_1_8 locally
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (420.7 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_7 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_7 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 577.8 MB
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_10 stored as values in memory (estimated size 384.3 MB, free 193.5 MB)
+org.apache.spark.storage.BlockManager:   Found block rdd_1_10 locally
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_11 stored as values in memory (estimated size 66.3 MB, free 127.2 MB)
+org.apache.spark.storage.BlockManager:   Found block rdd_1_11 locally
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (401.1 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_8 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_8 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 528.3 MB
+org.apache.spark.storage.memory.MemoryStore:   1 blocks selected for dropping (384.3 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_10 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_10 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 1 blocks, free memory is 912.6 MB
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_6 stored as values in memory (estimated size 431.3 MB, free 481.2 MB)
+org.apache.spark.storage.BlockManager:   Found block rdd_1_6 locally
+org.apache.spark.storage.memory.MemoryStore:   2 blocks selected for dropping (497.7 MB bytes)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_11 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_11 on disk on 10.10.49.98:37997 (size: 20.1 MB)
+org.apache.spark.storage.BlockManager:   Dropping block rdd_1_6 from memory
+org.apache.spark.storage.BlockManagerInfo:   Added rdd_1_6 on disk on 10.10.49.98:37997 (size: 133.9 MB)
+org.apache.spark.storage.memory.MemoryStore:   After dropping 2 blocks, free memory is 978.9 MB
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_3 stored as values in memory (estimated size 397.0 MB, free 581.9 MB)
+org.apache.spark.storage.BlockManager:   Found block rdd_1_3 locally
+org.apache.spark.storage.memory.MemoryStore:   Block rdd_1_9 stored as values in memory (estimated size 419.5 MB, free 162.4 MB)
+org.apache.spark.storage.BlockManager:   Found block rdd_1_9 locally
 org.apache.spark.storage.memory.MemoryStore:   MemoryStore cleared
 org.apache.spark.storage.BlockManager:   BlockManager stopped
 org.apache.spark.storage.BlockManagerMaster:   BlockManagerMaster stopped

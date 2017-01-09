@@ -17,8 +17,10 @@
 
 package org.apache.spark.storage
 
-import java.io.{FileOutputStream, IOException}
+import java.io.{FileOutputStream, IOException, File, FileWriter}
 import java.nio.ByteBuffer
+import java.net.InetAddress
+import java.util.Date
 
 import com.google.common.io.Closeables
 import org.apache.spark.SparkConf
@@ -33,6 +35,7 @@ trait DiskStoreLike {
   def getBytes(blockId: BlockId): ChunkedByteBuffer
   def remove(blockId: BlockId): Boolean
   def contains(blockId: BlockId): Boolean
+  def reportStats(): String
 }
 
 /**
@@ -139,15 +142,31 @@ private[spark] class DiskStoreWrapper(
     res
   }
 
+  def reportStats(): String = {
+    blockStore.reportStats()
+  }
+
   def report(): Unit = {
+    val host = InetAddress.getLocalHost().getHostName()
+    val dateTime = new Date() 
+    val statPath = System.getProperty("user.home") +
+      "/spark_results/" +
+      host + 
+      ".log";
+    val writer = new FileWriter(statPath, true);
+    writer.write(dateTime + "\n")
+
     val conv: Double = 1E-6
     if (logStats) {
-      logInfo(s"(RmemStoreStats), totalWritten, $totalStored")
-      logInfo(s"(RmemStoreStats), totalRead, $totalRead")
-      logInfo(s"(RmemStoreStats), maximumSize, $maxStored")
-      logInfo(s"(RmemStoreStats), timeWriting, " + timeStoring*conv)
-      logInfo(s"(RmemStoreStats), timeReading, " + timeReading*conv)
-      logInfo("(RmemStoreStats), timeOther, " + timeOther*conv)
+      writer.write(blockStore.reportStats());
+      writer.write(s"(RmemStoreStats), totalWritten, $totalStored\n")
+      writer.write(s"(RmemStoreStats), totalRead, $totalRead\n")
+      writer.write(s"(RmemStoreStats), maximumSize, $maxStored\n")
+      writer.write(s"(RmemStoreStats), timeWriting, " + timeStoring*conv + "\n")
+      writer.write(s"(RmemStoreStats), timeReading, " + timeReading*conv + "\n")
+      writer.write("(RmemStoreStats), timeOther, " + timeOther*conv + "\n")
     }
+    
+    writer.close
   }
 }
