@@ -1,3 +1,0 @@
-[submodule "external/remotebuf"]
-	path = external/remotebuf
-	url = git@github.com:amaro/remotebuf.git
